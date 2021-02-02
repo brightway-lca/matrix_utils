@@ -1,5 +1,4 @@
 import numpy as np
-from scipy import sparse
 
 
 class ArrayMapper:
@@ -33,7 +32,6 @@ class ArrayMapper:
         # The default code will generate a complete mapping for the (min, max)
         # interval, which can use too much memory in certain cases.
         # self.use_sparse = len(self.keys) / self.keys.max() <= sparse_cutoff:
-        self.use_sparse = False
 
         self.max_value = int(self.array.max())
         self.index_array = np.zeros(self.max_value + 1) - 1

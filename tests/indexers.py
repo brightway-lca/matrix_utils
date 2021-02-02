@@ -1,72 +1,35 @@
-# from matrix_utils import RandomIndexer, SequentialIndexer, CombinatorialIndexer
-# from pathlib import Path
-# from scipy.sparse import *
-# import numpy as np
-# import pytest
-# import tempfile
+from matrix_utils import RandomIndexer, SequentialIndexer, CombinatorialIndexer
+import numpy as np
 
 
-# def test_seed():
-#     i = Indexer(1e6)
-#     assert i.seed_value is None
-#     i = Indexer(1e6, seed=42)
-#     assert i.seed_value == 42
+def test_random():
+    a = RandomIndexer(42)
+    b = RandomIndexer(42)
+    assert np.allclose([next(a) for _ in range(10)], [next(b) for _ in range(10)])
+    a = RandomIndexer()
+    b = RandomIndexer()
+    assert not np.allclose([next(a) for _ in range(10)], [next(b) for _ in range(10)])
 
-# def test_ncols():
-#     i = Indexer(1e6)
-#     assert i.ncols == 1e6
 
-# def test_sequential_wraparound():
-#     i = Indexer(5, 'sequential')
-#     assert [next(i) for _ in range(10)] == list(range(5)) * 2
+def test_sequential():
+    a = SequentialIndexer()
+    assert a.index == 0
+    for i in range(1, 10):
+        assert next(a) == i
+        assert a.index == i
 
-# def test_no_seed_different_each_time():
-#     i = Indexer(1e6)
-#     a = [next(i) for _ in range(10)]
-#     b = list(range(10))
-#     assert a != b
-#     assert len(set(a)) == 10
 
-# def test_reproducible_indexing():
-#     i = Indexer(1e6, seed=12345)
-#     a = [next(i) for _ in range(10)]
-#     i = Indexer(1e6, seed=12345)
-#     b = [next(i) for _ in range(10)]
-#     assert a == b
-#     assert a != list(range(10))
-
-# def test_sequential_seed():
-#     i = Indexer(1e6, seed='sequential')
-#     a = [next(i) for _ in range(10)]
-#     assert a == list(range(10))
-#     assert i.count == 10
-#     assert i.index == 9
-
-# def test_count():
-#     i = Indexer(1e6)
-#     for index in range(10):
-#         assert i.count == index
-#         next(i)
-
-# def test_index_attribute():
-#     i = Indexer(1e6)
-#     assert i.index is None
-#     for index in range(10):
-#         next(i)
-#         assert i.index != i.count
-
-# def test_sequential_reset():
-#     i = Indexer(1e6, seed='sequential')
-#     a = [next(i) for _ in range(10)]
-#     assert a == list(range(10))
-#     assert i.count == 10
-#     assert i.index == 9
-
-#     i.reset_sequential_indices()
-#     assert i.count == i.index == 0
-
-#     a = [next(i) for _ in range(10)]
-#     assert a == list(range(10))
-#     assert i.count == 10
-#     assert i.index == 9
-
+def test_combinatorial():
+    a = CombinatorialIndexer([4, 2, 3])
+    assert a.index == (0, 0, 0)
+    next(a)
+    assert a.index == (0, 0, 1)
+    results = [next(a) for _ in range(5)]
+    expected = [
+        (0, 0, 2),
+        (0, 1, 0),
+        (0, 1, 1),
+        (0, 1, 2),
+        (1, 0, 0),
+    ]
+    assert results == expected

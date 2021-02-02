@@ -1,11 +1,18 @@
-from numpy.random import RandomState
-from typing import Union
+from numpy.random import Generator, PCG64
+from typing import Union, List
+from itertools import product
+
 
 # Max signed 32 bit integer, compatible with Windows
 MAX_SIGNED_32BIT_INT = 2147483647
 
 
-class RandomIndexer(RandomState):
+class Indexer:
+    """Base class for indexers"""
+    pass
+
+
+class RandomIndexer(Generator, Indexer):
     """A (potentially) seeded integer RNG that remembers the generated index.
 
     Returns indices for a sample array.
@@ -13,36 +20,41 @@ class RandomIndexer(RandomState):
     max_value: Number of columns in the array for which a column index is returned.
     seed: Seed for RNG. Optional."""
 
-    def __init__(self, *, max_value: int, seed: Union[int, None] = None):
-        self.max_value = max_value
-        self.seed_value, self.count, self.index = seed, 0, None
-        super().__init__(seed)
+    def __init__(self, seed: Union[int, None] = None):
+        super().__init__(PCG64(seed))
+        next(self)
 
     def __next__(self):
-        self.index = self.randint(0, MAX_SIGNED_32BIT_INT) % self.ncols
-        self.count += 1
+        self.index = self.integers(0, MAX_SIGNED_32BIT_INT)
         return self.index
 
 
-class SequentialIndexer:
-    def __init__(self, *, max_value: int):
-        self.max_value = max_value
+class SequentialIndexer(Indexer):
+    def __init__(self):
+        self.index = 0
 
     def __next__(self):
-        self.index = self.count % self.max_value
-        self.count += 1
+        self.index += 1
         return self.index
 
-    def reset_sequential_indices(self):
-        """Reset index value.
 
-        Used in Monte Carlo calculations."""
-        self.count, self.index = 0, 0
+class CombinatorialIndexer(Indexer):
+    def __init__(self, max_values: List[int]):
+        self.iterator = product(*[range(x) for x in max_values])
+        next(self)
+
+    def __next__(self):
+        self.index = next(self.iterator)
+        return self.index
 
 
-class CombinatorialIndexerMother:
-    pass
+class Proxy:
+    """Simple class that proxies access to a combinatorial indexer"""
 
+    def __init__(self, indexer: CombinatorialIndexer, offset: int):
+        self.indexer = indexer
+        self.offset = offset
 
-class CombinatorialIndexerDaughter:
-    pass
+    @property
+    def index(self):
+        return self.indexer[self.offset]
