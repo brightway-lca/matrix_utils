@@ -37,7 +37,6 @@ class ArrayMapper:
 
         self.max_value = int(self.array.max())
         self.index_array = np.zeros(self.max_value + 1) - 1
-        print("array_mapper", self.array.shape, self.array.dtype)
         self.index_array[self.array] = np.arange(len(self.array))
 
     def _check_input_array(self, array: np.ndarray) -> None:

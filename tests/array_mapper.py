@@ -11,7 +11,7 @@ def test_initial_setup():
 
 
 def test_float_indices_raises_error():
-    inpt = np.array([1, 2, 3, 6.])
+    inpt = np.array([1, 2, 3, 6.0])
     with pytest.raises(IndexError):
         ArrayMapper(array=inpt)
 

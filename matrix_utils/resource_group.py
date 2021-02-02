@@ -3,6 +3,13 @@ import numpy as np
 from .utils import get_exactly_one
 
 
+# combinatorial: bool = False,
+# sequential: bool = False,
+# seed: Union[int, None] = None,
+# sum_duplicates: bool = False,
+# substitute: bool = True,
+
+
 class ResourceGroup:
     def __init__(
         self,
@@ -23,18 +30,24 @@ class ResourceGroup:
     def _get_indices(self):
         if not hasattr(self, "values"):
             self.values = get_exactly_one(
-                self.package.get_resource(o['name'])[0] for o in self.package.resources if o["kind"] == "indices"
+                self.package.get_resource(o["name"])[0]
+                for o in self.package.resources
+                if o["kind"] == "indices"
             )
 
-    def unique_row_indices(self):
+    def row_indices(self):
         self._get_indices()
-        print(type(self.values))
-        print(self.values)
-        return np.unique(self.values["row"])
+        return self.values["row"]
+
+    def col_indices(self):
+        self._get_indices()
+        return self.values["col"]
+
+    def unique_row_indices(self):
+        return np.unique(self.row_indices())
 
     def unique_col_indices(self):
-        self._get_indices()
-        return np.unique(self.values["col"])
+        return np.unique(self.col_indices())
 
     def map_row_indices(self, mapper):
         pass
