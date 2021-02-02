@@ -10,6 +10,12 @@ def test_initial_setup():
     assert np.allclose(am.map_array(inpt), expected)
 
 
+def test_float_indices_raises_error():
+    inpt = np.array([1, 2, 3, 6.])
+    with pytest.raises(IndexError):
+        ArrayMapper(array=inpt)
+
+
 def test_conversion_to_dict():
     inpt = np.array([1, 2, 3, 6, 9, 12, 9, 6, 5])
     am = ArrayMapper(array=inpt)
@@ -42,8 +48,7 @@ def test_mapping_missing_values():
     am = ArrayMapper(array=inpt)
     given = np.array([1, 3, 2, 4])
     result = am.map_array(given)
-    assert np.isnan(result[3])
-    assert np.allclose(result[:3], [0, 2, 1])
+    assert np.allclose(result, [0, 2, 1, -1])
 
 
 def test_mapping_out_of_bounds():
@@ -51,5 +56,4 @@ def test_mapping_out_of_bounds():
     am = ArrayMapper(array=inpt)
     given = np.array([1, 3, 2, 400])
     result = am.map_array(given)
-    assert np.isnan(result[3])
-    assert np.allclose(result[:3], [0, 2, 1])
+    assert np.allclose(result, [0, 2, 1, -1])
