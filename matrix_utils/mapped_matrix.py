@@ -20,7 +20,7 @@ class MappedMatrix:
         use_distributions: bool = False,
         row_mapper: Union[ArrayMapper, None] = None,
         col_mapper: Union[ArrayMapper, None] = None,
-        seed_override: Union[int, None] = None
+        seed_override: Union[int, None] = None,
     ):
         self.seed_override = seed_override
         self.packages = {
