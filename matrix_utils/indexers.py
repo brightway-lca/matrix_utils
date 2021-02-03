@@ -1,6 +1,6 @@
+from itertools import product
 from numpy.random import Generator, PCG64
 from typing import Union, List
-from itertools import product
 
 
 # Max signed 32 bit integer, compatible with Windows

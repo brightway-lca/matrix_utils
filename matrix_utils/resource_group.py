@@ -1,9 +1,9 @@
-from .indexers import Indexer, Proxy
-from .array_mapper import ArrayMapper
 from .aggregation import aggregate_with_sparse
+from .array_mapper import ArrayMapper
+from .indexers import Indexer, Proxy
 from bw_processing import DatapackageBase
-import numpy as np
 from typing import Any
+import numpy as np
 
 
 class ResourceGroup:
@@ -93,6 +93,8 @@ class ResourceGroup:
             data[self.flip] *= -1
         except KeyError:
             pass
+
+        self.sample = data.copy()
 
         if self.sum_duplicates:
             return aggregate_with_sparse(

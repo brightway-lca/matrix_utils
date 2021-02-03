@@ -1,10 +1,10 @@
-from .resource_group import ResourceGroup
 from .array_mapper import ArrayMapper
 from .indexers import RandomIndexer, SequentialIndexer, CombinatorialIndexer
+from .resource_group import ResourceGroup
 from bw_processing import Datapackage
+from scipy import sparse
 from typing import Union, Sequence
 import numpy as np
-from scipy import sparse
 
 
 class MappedMatrix:
