@@ -13,11 +13,16 @@ setup(
     author="Chris Mutel",
     author_email="cmutel@gmail.com",
     license="BSD 3-clause",
-    install_requires=["numpy", "pandas", "bw_processing"],
+    install_requires=[
+        "numpy",
+        "scipy",
+        "pandas",
+        "bw_processing",
+        "stats_arrays",
+    ],
     url="https://github.com/brightway-lca/matrix_utils",
     long_description_content_type="text/markdown",
     long_description=open("README.md").read(),
-    # package_data={"matrix_utils": ["examples/*.zip"]},
     description="Tools to create matrices from data packages",
     classifiers=[
         "Intended Audience :: End Users/Desktop",
