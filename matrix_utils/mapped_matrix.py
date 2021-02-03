@@ -65,7 +65,7 @@ class MappedMatrix:
         self.matrix = sparse.coo_matrix(
             (np.zeros(len(row_indices)), (row_indices, col_indices),),
             (row_indices.max() + 1, col_indices.max() + 1,),
-            dtype=np.float32
+            dtype=np.float64
         ).tocsr()
 
         self.rebuild_matrix()
