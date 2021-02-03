@@ -37,6 +37,9 @@ class ArrayMapper:
         self.index_array = np.zeros(self.max_value + 1) - 1
         self.index_array[self.array] = np.arange(len(self.array))
 
+    def __len__(self):
+        return self.array.shape[0]
+
     def _check_input_array(self, array: np.ndarray) -> None:
         if len(array.shape) != 1:
             raise ValueError("array must be 1-d")
