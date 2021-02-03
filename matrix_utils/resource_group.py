@@ -37,7 +37,8 @@ class ResourceGroup:
 
     def is_vector(self) -> bool:
         """Determine if this is a vector or array resource"""
-        return not (hasattr(self.data, "shape") and len(self.data.shape) > 1)
+        metadata = self.package.get_resource(self.label + ".data")[1]
+        return metadata.get('category') == 'vector'
 
     @property
     def ncols(self):
