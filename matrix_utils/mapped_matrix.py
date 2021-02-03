@@ -63,10 +63,12 @@ class MappedMatrix:
         col_indices = np.hstack([obj.col for obj in self.groups])
 
         self.matrix = sparse.coo_matrix(
-            (np.zeros_like(row_indices), (row_indices, col_indices),),
+            (np.zeros(len(row_indices)), (row_indices, col_indices),),
             (row_indices.max() + 1, col_indices.max() + 1,),
-        )
-        # self.rebuild_matrix()
+            dtype=np.float32
+        ).tocsr()
+
+        self.rebuild_matrix()
 
     def add_mappers(self, axis: int, mapper: ArrayMapper):
         for group in self.groups:
@@ -82,6 +84,7 @@ class MappedMatrix:
                 next(obj.indexer)
 
     def rebuild_matrix(self):
+        self.matrix.data *= 0
         for group in self.groups:
             row, col, data = group.calculate()
             if group.package.metadata["substitute"]:

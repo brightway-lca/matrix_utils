@@ -22,17 +22,17 @@ class ResourceGroup:
 
     @property
     def data(self):
-        return self._get_data("data")
+        return self._get_resource("data")
 
     @property
     def flip(self):
-        return self._get_data("flip")
+        return self._get_resource("flip")
 
     @property
     def indices(self):
-        return self._get_data("indices")
+        return self._get_resource("indices")
 
-    def _get_data(self, suffix: str) -> Any:
+    def _get_resource(self, suffix: str) -> Any:
         return self.package.get_resource(self.label + "." + suffix)[0]
 
     def is_vector(self) -> bool:
@@ -54,10 +54,11 @@ class ResourceGroup:
 
     def map_indices(self):
         if self.sum_duplicates:
-            row_disaggregated = self.row_mapper.map_array(self.indices["row"])
-            col_disaggregated = self.col_mapper.map_array(self.indices["col"])
+            self.row_disaggregated = self.row_mapper.map_array(self.indices["row"])
+            self.col_disaggregated = self.col_mapper.map_array(self.indices["col"])
+            self.count = max(self.row_disaggregated.max(), self.col_disaggregated.max()) + 1
             self.row, self.col, _ = aggregate_with_sparse(
-                row_disaggregated, col_disaggregated, np.zeros_like(row_disaggregated),
+                self.row_disaggregated, self.col_disaggregated, np.zeros(len(self.row_disaggregated)), self.count
             )
         else:
             self.row = self.row_mapper.map_array(self.indices["row"])
@@ -77,6 +78,25 @@ class ResourceGroup:
     def add_combinatorial_indexer(self, indexer: Indexer, offset: int):
         self.indexer = Proxy(indexer, offset)
 
-    def calculate(self):
-        pass
-        # return row, col, data
+    def calculate(self, vector: np.ndarray = None):
+        if vector is not None:
+            data = vector
+        elif self.vector:
+            try:
+                data = next(self.data)
+            except TypeError:
+                data = self.data
+        else:
+            data = self.data[:, self.indexer.index]
+
+        try:
+            data[self.flip] *= -1
+        except KeyError:
+            pass
+
+        if self.sum_duplicates:
+            return aggregate_with_sparse(
+                self.row_disaggregated, self.col_disaggregated, data, self.count
+            )
+        else:
+            return self.row, self.col, data
