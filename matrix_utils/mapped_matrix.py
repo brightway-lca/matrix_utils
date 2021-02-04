@@ -87,7 +87,7 @@ class MappedMatrix:
         self.matrix.data *= 0
         for group in self.groups:
             row, col, data = group.calculate()
-            if group.package.metadata["substitute"]:
+            if group.package.metadata["sum_inter_duplicates"]:
                 self.matrix[row, col] = data
             else:
                 self.matrix[row, col] += data

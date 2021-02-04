@@ -17,7 +17,7 @@ class ResourceGroup:
         self.label = group_label
         self.package = package
         self.use_distributions = use_distributions
-        self.sum_duplicates = self.package.metadata["sum_duplicates"]
+        self.sum_intra_duplicates = self.package.metadata["sum_intra_duplicates"]
         self.vector = self.is_vector()
 
     @property
@@ -54,7 +54,7 @@ class ResourceGroup:
             self.col_mapper = mapper
 
     def map_indices(self):
-        if self.sum_duplicates:
+        if self.sum_intra_duplicates:
             self.row_disaggregated = self.row_mapper.map_array(self.indices["row"])
             self.col_disaggregated = self.col_mapper.map_array(self.indices["col"])
             self.count = max(self.row_disaggregated.max(), self.col_disaggregated.max()) + 1
@@ -97,7 +97,7 @@ class ResourceGroup:
 
         self.sample = data.copy()
 
-        if self.sum_duplicates:
+        if self.sum_intra_duplicates:
             return aggregate_with_sparse(
                 self.row_disaggregated, self.col_disaggregated, data, self.count
             )

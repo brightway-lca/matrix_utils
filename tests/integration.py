@@ -18,7 +18,7 @@ def test_basic_matrix_construction():
 
 def test_matrix_construction_overlapping_substitution():
     mm = MappedMatrix(
-        packages=[overlapping(substitute=True)], matrix="foo", use_arrays=False, use_distributions=False,
+        packages=[overlapping(sum_inter_duplicates=True)], matrix="foo", use_arrays=False, use_distributions=False,
     )
     mm.rebuild_matrix()
     row = np.array([0, 1, 2, 3, 4, 5])
@@ -32,7 +32,7 @@ def test_matrix_construction_overlapping_substitution():
 
 def test_matrix_construction_overlapping_sum():
     mm = MappedMatrix(
-        packages=[overlapping(substitute=False)], matrix="foo", use_arrays=False, use_distributions=False,
+        packages=[overlapping(sum_inter_duplicates=False)], matrix="foo", use_arrays=False, use_distributions=False,
     )
     mm.rebuild_matrix()
     row = np.array([0, 1, 2, 3, 4, 5])
@@ -59,7 +59,7 @@ def test_matrix_construction_internal_aggregation():
 
 def test_matrix_construction_no_internal_aggregation():
     mm = MappedMatrix(
-        packages=[aggregation(sum_duplicates=False)], matrix="foo", use_arrays=False, use_distributions=False,
+        packages=[aggregation(sum_intra_duplicates=False)], matrix="foo", use_arrays=False, use_distributions=False,
     )
     row = np.array([0, 1, 2, 3])
     col = np.array([0, 1, 2, 3])
