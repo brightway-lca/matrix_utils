@@ -1,4 +1,4 @@
-from matrix_utils import RandomIndexer, SequentialIndexer, CombinatorialIndexer
+from matrix_utils import RandomIndexer, SequentialIndexer, CombinatorialIndexer, Proxy
 import numpy as np
 
 
@@ -32,4 +32,30 @@ def test_combinatorial():
         (0, 1, 2),
         (1, 0, 0),
     ]
+    assert results == expected
+
+
+def test_combinatorial_proxy():
+    a = CombinatorialIndexer([4, 2, 3])
+    assert a.index == (0, 0, 0)
+
+    p = Proxy(a, 0)
+
+    results = []
+    for _ in range(5):
+        results.append(p.index)
+        next(a)
+    expected = [0, 0, 0, 0, 0]
+    assert results == expected
+
+    a = CombinatorialIndexer([4, 2, 3])
+    assert a.index == (0, 0, 0)
+
+    p = Proxy(a, 2)
+
+    results = []
+    for _ in range(5):
+        results.append(p.index)
+        next(a)
+    expected = [0, 1, 2, 0, 1]
     assert results == expected

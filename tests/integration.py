@@ -1,6 +1,7 @@
 from fixtures import overlapping, basic_mm, aggregation
 from matrix_utils import MappedMatrix
 import numpy as np
+import bw_processing as bwp
 
 
 def test_basic_matrix_construction():
@@ -68,3 +69,45 @@ def test_matrix_construction_no_internal_aggregation():
     assert np.allclose(matrix.row, row)
     assert np.allclose(matrix.col, col)
     assert np.allclose(matrix.data, data)
+
+
+def test_arrays_sequential_iteration():
+    dp = bwp.create_datapackage()
+    dp.add_persistent_vector(
+        matrix="foo",
+        indices_array=np.array(
+            [(100, 400), (101, 401), (102, 402), (103, 403),  # Production
+             (100, 401), (101, 402), (101, 403), (102, 403)], # Inputs
+            dtype=bwp.INDICES_DTYPE  # Means first element is row, second is column
+        ),
+        flip_array=np.array([
+            False, False, False, False, # Production
+            True, True, True, True      # Inputs
+        ]),
+        data_array=np.array([
+            1, 1, 1, 1,  # Production
+            2, 4, 8, 16  # Inputs
+        ]),
+    )
+    s = bwp.create_datapackage(sequential=True)
+    s.add_persistent_array(
+        matrix="foo",
+        data_array=np.array([
+            [-10, -6],  # Amount of 101 needed by 404
+            [-6, -10],  # Amount of 101 needed by 405
+            [0, -20],   # Amount of 102 needed by 404
+            [-20, 0],   # Amount of 102 needed by 405
+            [1, 1],     # Production of 404
+            [1, 1],     # Production of 405
+        ]),
+        indices_array=np.array(
+            [(101, 404), (101, 405), (102, 404), (102, 405), (104, 404), (105, 405)],
+            dtype=bwp.INDICES_DTYPE
+        )
+    )
+    mm = MappedMatrix(
+        packages=[dp, s], matrix="foo", use_arrays=True, use_distributions=False,
+    )
+    assert mm.matrix[1, 4] == -10
+    next(mm)
+    assert mm.matrix[1, 4] == -6
