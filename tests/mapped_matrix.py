@@ -20,3 +20,11 @@ def test_group_filtering():
     assert len(mm.groups) == 2
     assert mm.groups[0].label == "vector"
     assert mm.groups[1].label == "vector2"
+
+
+def test_no_packages():
+    pass
+
+
+def test_no_useful_pacakges():
+    pass

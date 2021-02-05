@@ -57,4 +57,4 @@ class Proxy:
 
     @property
     def index(self):
-        return self.indexer[self.offset]
+        return self.indexer.index[self.offset]
