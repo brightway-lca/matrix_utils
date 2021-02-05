@@ -23,6 +23,7 @@ class MappedMatrix:
         seed_override: Union[int, None] = None,
     ):
         self.seed_override = seed_override
+        self.matrix_label = matrix
         self.packages = {
             package: [
                 ResourceGroup(
