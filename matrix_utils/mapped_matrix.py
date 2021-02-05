@@ -88,9 +88,9 @@ class MappedMatrix:
         for group in self.groups:
             row, col, data = group.calculate()
             if group.package.metadata["sum_inter_duplicates"]:
-                self.matrix[row, col] = data
-            else:
                 self.matrix[row, col] += data
+            else:
+                self.matrix[row, col] = data
 
     def __next__(self):
         self.iterate_indexers()
