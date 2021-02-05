@@ -88,7 +88,9 @@ class ResourceGroup:
             except TypeError:
                 data = self.data
         else:
-            data = self.data[:, self.indexer.index]
+            data = self.data[:, self.indexer.index % self.ncols]
+
+        data = data.copy()
 
         try:
             data[self.flip] *= -1
