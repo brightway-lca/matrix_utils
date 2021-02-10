@@ -52,17 +52,23 @@ class ResourceGroup:
         else:
             self.col_mapper = mapper
 
-    def map_indices(self):
+    def map_indices(self, *, diagonal=False):
         if self.package.metadata["sum_intra_duplicates"]:
             self.row_disaggregated = self.row_mapper.map_array(self.indices["row"])
-            self.col_disaggregated = self.col_mapper.map_array(self.indices["col"])
+            if diagonal:
+                self.col_disaggregated = self.row_disaggregated
+            else:
+                self.col_disaggregated = self.col_mapper.map_array(self.indices["col"])
             self.count = max(self.row_disaggregated.max(), self.col_disaggregated.max()) + 1
             self.row, self.col, _ = aggregate_with_sparse(
                 self.row_disaggregated, self.col_disaggregated, np.zeros(len(self.row_disaggregated)), self.count
             )
         else:
             self.row = self.row_mapper.map_array(self.indices["row"])
-            self.col = self.col_mapper.map_array(self.indices["col"])
+            if diagonal:
+                self.col = self.row
+            else:
+                self.col = self.col_mapper.map_array(self.indices["col"])
 
     def unique_row_indices(self):
         """Return array of unique indices that respect aggregation policy"""

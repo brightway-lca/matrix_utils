@@ -21,8 +21,10 @@ class MappedMatrix:
         row_mapper: Union[ArrayMapper, None] = None,
         col_mapper: Union[ArrayMapper, None] = None,
         seed_override: Union[int, None] = None,
+        diagonal=False,
     ):
         self.seed_override = seed_override
+        self.diagonal = diagonal
         self.matrix_label = matrix
         self.packages = {
             package: [
@@ -46,26 +48,35 @@ class MappedMatrix:
         self.row_mapper = row_mapper or ArrayMapper(
                 array=np.hstack([obj.unique_row_indices() for obj in self.groups]),
             )
-        self.col_mapper = col_mapper or ArrayMapper(
-                array=np.hstack([obj.unique_col_indices() for obj in self.groups]),
-            )
+        if not diagonal:
+            self.col_mapper = col_mapper or ArrayMapper(
+                    array=np.hstack([obj.unique_col_indices() for obj in self.groups]),
+                )
 
         self.add_mappers(
             axis=0,
             mapper=self.row_mapper,
         )
-        self.add_mappers(
-            axis=1,
-            mapper=self.col_mapper
-        )
+
+        if not diagonal:
+            self.add_mappers(
+                axis=1,
+                mapper=self.col_mapper
+            )
         self.map_indices()
 
         row_indices = np.hstack([obj.row for obj in self.groups])
         col_indices = np.hstack([obj.col for obj in self.groups])
 
+        if diagonal:
+            x = int(self.row_mapper.index_array.max() + 1)
+            dimensions = (x, x)
+        else:
+            dimensions = (int(self.row_mapper.index_array.max() + 1), int(self.col_mapper.index_array.max() + 1))
+
         self.matrix = sparse.coo_matrix(
             (np.zeros(len(row_indices)), (row_indices, col_indices),),
-            (int(self.row_mapper.index_array.max() + 1), int(self.col_mapper.index_array.max() + 1),),
+            dimensions,
             dtype=np.float64
         ).tocsr()
 
@@ -77,7 +88,7 @@ class MappedMatrix:
 
     def map_indices(self):
         for group in self.groups:
-            group.map_indices()
+            group.map_indices(diagonal=self.diagonal)
 
     def iterate_indexers(self):
         for obj in self.packages:
