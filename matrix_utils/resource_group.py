@@ -18,6 +18,7 @@ class ResourceGroup:
         self.package = package
         self.use_distributions = use_distributions
         self.vector = self.is_vector()
+        self.aggregate = self.package.metadata["sum_intra_duplicates"]
 
     @property
     def data(self):
@@ -52,23 +53,40 @@ class ResourceGroup:
         else:
             self.col_mapper = mapper
 
-    def map_indices(self, *, diagonal=False):
-        if self.package.metadata["sum_intra_duplicates"]:
-            self.row_disaggregated = self.row_mapper.map_array(self.indices["row"])
-            if diagonal:
-                self.col_disaggregated = self.row_disaggregated
-            else:
-                self.col_disaggregated = self.col_mapper.map_array(self.indices["col"])
-            self.count = max(self.row_disaggregated.max(), self.col_disaggregated.max()) + 1
-            self.row, self.col, _ = aggregate_with_sparse(
-                self.row_disaggregated, self.col_disaggregated, np.zeros(len(self.row_disaggregated)), self.count
-            )
+    def build_mask(self, a, b):
+        mask = (a != -1) * (b != -1)
+        if (~mask).sum():
+            return mask
         else:
-            self.row = self.row_mapper.map_array(self.indices["row"])
-            if diagonal:
-                self.col = self.row
+            return None
+
+    def map_indices(self, *, diagonal=False):
+        self.row_original = self.row_mapper.map_array(self.indices["row"])
+        if diagonal:
+            self.col_original = self.row_original
+        else:
+            self.col_original = self.col_mapper.map_array(self.indices["col"])
+
+        self.mask = self.build_mask(self.row_original, self.col_original)
+
+        if self.aggregate:
+            self.count = max(self.row_original.max(), self.col_original.max()) + 1
+            if self.mask is not None:
+                self.row, self.col, _ = aggregate_with_sparse(
+                    self.row_original[self.mask], self.col_original[self.mask], np.zeros(self.mask.sum()), self.count
+                )
             else:
-                self.col = self.col_mapper.map_array(self.indices["col"])
+                self.row, self.col, _ = aggregate_with_sparse(
+                    self.row_original, self.col_original, np.zeros(self.row_original.shape), self.count
+                )
+
+        else:
+            if self.mask is not None:
+                self.row = self.row_original[self.mask]
+                self.col = self.col_original[self.mask]
+            else:
+                self.row = self.row_original
+                self.col = self.col_original
 
     def unique_row_indices(self):
         """Return array of unique indices that respect aggregation policy"""
@@ -104,9 +122,14 @@ class ResourceGroup:
 
         self.sample = data.copy()
 
-        if self.package.metadata["sum_intra_duplicates"]:
-            return aggregate_with_sparse(
-                self.row_disaggregated, self.col_disaggregated, data, self.count
-            )
+        if self.aggregate:
+            if self.mask is not None:
+                return aggregate_with_sparse(
+                    self.row_original[self.mask], self.col_original[self.mask], data[self.mask], self.count
+                )
+            else:
+                return aggregate_with_sparse(
+                    self.row_original, self.col_original, data, self.count
+                )
         else:
-            return self.row, self.col, data
+            return self.row, self.col, data[self.mask]
