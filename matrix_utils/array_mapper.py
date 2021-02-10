@@ -59,3 +59,6 @@ class ArrayMapper:
         human examination, the normal implementation uses Numpy functions on the
         arrays directly."""
         return {int(x): int(y) for x, y in zip(self.array, self.map_array(self.array))}
+
+    def reverse_dict(self) -> dict:
+        return {y: x for x, y in self.to_dict().items()}
