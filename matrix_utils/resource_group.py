@@ -22,17 +22,17 @@ class ResourceGroup:
 
     @property
     def data(self):
-        return self._get_resource("data")
+        return self.get_resource_by_suffix("data")
 
     @property
     def flip(self):
-        return self._get_resource("flip")
+        return self.get_resource_by_suffix("flip")
 
     @property
     def indices(self):
-        return self._get_resource("indices")
+        return self.get_resource_by_suffix("indices")
 
-    def _get_resource(self, suffix: str) -> Any:
+    def get_resource_by_suffix(self, suffix: str) -> Any:
         return self.package.get_resource(self.label + "." + suffix)[0]
 
     def is_vector(self) -> bool:
