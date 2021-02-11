@@ -20,9 +20,7 @@ The [calculation library](https://github.com/brightway-lca/brightway2-calc) of t
 
 ### Backwards compatibility
 
-This library presents a completely different API than the functions previously present in `bw2calc`.
-
-
+This library presents a completely different API than the functions previously present in `bw2calc`. Most ideas become easier, or even possible; however, some things are more complicated. In particular, the notion that we have a single array that defines a matrix is no longer true - a matrix can be defined by many input arrays, and they can interact with each other (either adding to or replacing matrix data).
 
 ## Install
 
@@ -50,14 +48,14 @@ Out[3]:
 
 `MappedMatrix` takes the following arguments. Note that all arguments **must be** keyword arguments:
 
-* `packages`: list, required. List of `bw_processing` data packages.
-* `matrix`: str, required. Label of matrix to build. Used to filter data in `packages`, so must be idential to the package resource `matrix`.
+* `packages`: list, required. List of `bw_processing` data packages. The packages must be instantiated, you can't give file locations of `PyFilesystem2` file systems.
+* `matrix`: str, required. Label of matrix to build. Used to filter data in `packages`, so must be identical to the `matrix` value in the package(s).
 * `use_vectors`: bool, default True. Include vector data resources when building matrices.
-* `use_arrays`: bool, default True. Include array data resources when building matrices.
+* `use_arrays`: bool, default True. Include array data resources when building matrices. Note that each data package resource group can only provide either vector or array data.
 * `use_distributions`: bool, default False. Include probability distribution data resources when building matrices.
-* `row_mapper`: `matrix_utils.ArrayMapper`, default None. Optional mapping class used to translate data source ids to matrix row ids. In LCA, one would reuse this mapping class to make sure the dimensions of multiple matrices align.
-* `col_mapper`: `matrix_utils.ArrayMapper`, default None. Optional mapping class used to translate data source ids to matrix column ids. In LCA, one would reuse this mapping class to make sure the dimensions of multiple matrices align.
-* `seed_override`: int, default None. Override the random seed given in the data package. Note that this is ignored if the data package is combinatorial.
+* `row_mapper`: `matrix_utils.ArrayMapper`, default `None`. Optional mapping class used to translate data source ids to matrix row indices. In LCA, one would reuse this mapping class to make sure the dimensions of multiple matrices align.
+* `col_mapper`: `matrix_utils.ArrayMapper`, default `None`. Optional mapping class used to translate data source ids to matrix column indices. In LCA, one would reuse this mapping class to make sure the dimensions of multiple matrices align.
+* `seed_override`: int, default `None`. Override the random seed given in the data package. Note that this is ignored if the data package is combinatorial.
 
 `MappedMatrix` is iterable; calling `next()` will draw new samples from all included stochastic resources, and rebuild the matrix.
 
@@ -65,24 +63,20 @@ You may also find it useful to iterate through `MappedMatrix.groups`, which are 
 
 ### `ResourceGroup` class
 
-A `bw_processing` data package is essentially a metadata file and a bag of data resources. These resources are *grouped*, for multiple resources are needed to build one matrix, or one component of one matrix. For example, one needs not on the data vector, but also the row and column indices (which are a separate file), to build a simple matrix. One could also have a `flip` vector, in another file, used to flip the signs of data elements before matrix insertion.
+A `bw_processing` data package is essentially a metadata file and a bag of data resources. These resources are *grouped*, for multiple resources are needed to build one matrix, or one component of one matrix. For example, one needs not only the data vector, but also the row and column indices to build a simple matrix. One could also have a `flip` vector, in another file, used to flip the signs of data elements before matrix insertion.
 
 The `ResourceGroup` class provides a single interface to these data files and their metadata. `ResourceGroup` instances are created automatically by `MappedMatrix`, and available via `MappedMatrix.groups`. The [source code]() is pretty readable, and in general you probably don't need to worry about this low-level class, but the following could be useful:
 
 * `ResourceGroup.data`: The Numpy data vector or array, or the data interface. This is the raw input data, duplicate elements are not aggregated (if applicable).
 * `ResourceGroup.sample`: Numpy vector of the data inserted into the matrix, after aggregation (if applicable) and sign flipping.
-* `ResourceGroup.indices`: The Numpy structured data array with **unmapped** indices (i.e. data source ids). Has `row` and `col` columns.
+* `ResourceGroup.indices`: The Numpy structured data array with **unmapped** indices (i.e. data source ids given in the data package). Has `row` and `col` columns.
 * `ResourceGroup.row`: Numpy vector of matrix row indices.
 * `ResourceGroup.col`: Numpy vector of matrix col indices.
-* `ResourceGroup.row_disaggregated`: Numpy vector of matrix row indices before summing duplicate entries. Only present is `sum_duplicates` is True.
-* `ResourceGroup.row_disaggregated`: Numpy vector of matrix column indices before summing duplicate entries. Only present is `sum_duplicates` is True.
+* `ResourceGroup.row_original`: Numpy vector of matrix row indices before masking and summing duplicate entries.
+* `ResourceGroup.col_original`: Numpy vector of matrix column indices before masking and summing duplicate entries.
 * `ResourceGroup.calculate(vector=None)`: Function to recalculate matrix row, column, and data vectors. Uses the current state of the indexers, but re-draws values from data iterators. If `vector` is given, use this instead of the given data source.
 * `ResourceGroup.indexer`: The instance of the `Indexer` class applicable for this `ResourceGroup`. Only used for data arrays.
 * `ResourceGroup.ncols`: The integer number of columns in a data array. Returns `None` is a data vector is present.
-
-### Iterating through arrays
-
-
 
 ## Contributing
 

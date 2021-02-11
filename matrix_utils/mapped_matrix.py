@@ -8,7 +8,7 @@ import numpy as np
 
 
 class MappedMatrix:
-    """A scipy sparse matrix handler which takes in ``bw_processing`` data packages. Row and column values are mapped to indices, and a matrix is constructed."""
+    """A scipy sparse matrix handler which takes in ``bw_processing`` data packages. Row and column ids are mapped to matrix indices, and a matrix is constructed."""
 
     def __init__(
         self,
