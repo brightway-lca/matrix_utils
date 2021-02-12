@@ -1,0 +1,34 @@
+name: brightway25-dev
+channels:
+  - conda-forge
+  - cmutel
+  - haasad
+dependencies:
+  - appdirs
+  - astunparse >=1.6.1
+  - bw2parameters
+  - docopt
+  - eight
+  - fasteners
+  - fs
+  - future
+  - lxml
+  - numpy
+  - numpy
+  - pandas
+  - peewee >=3.9.4
+  - psutil
+  - pypardiso
+  - pyprind
+  - requests
+  - scipy
+  - scipy
+  - stats_arrays
+  - voluptuous
+  - whoosh
+  - wrapt
+  - pip:
+    - https://github.com/brightway-lca/bw_processing/archive/master.zip
+    - https://github.com/brightway-lca/matrix_utils/archive/main.zip
+    - https://github.com/brightway-lca/brightway2-calc/archive/master.zip
+    - https://github.com/brightway-lca/brightway2-data/archive/master.zip
