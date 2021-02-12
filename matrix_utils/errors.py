@@ -14,3 +14,9 @@ class NoArrays(MatrixUtilsError):
     """No arrays for given matrix"""
 
     pass
+
+
+class EmptyArray(MatrixUtilsError):
+    """Empty array can't be used"""
+
+    pass

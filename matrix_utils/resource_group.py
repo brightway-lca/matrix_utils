@@ -46,6 +46,7 @@ class ResourceGroup:
         self.use_distributions = use_distributions
         self.vector = self.is_vector()
         self.aggregate = self.package.metadata["sum_intra_duplicates"]
+        self.empty = self.indices.shape == (0,)
 
     @property
     def data(self):
@@ -89,6 +90,11 @@ class ResourceGroup:
             return None
 
     def map_indices(self, *, diagonal=False):
+        if self.empty:
+            self.row = np.array([])
+            self.col = np.array([])
+            return
+
         self.row_original = self.row_mapper.map_array(self.indices["row"])
         if diagonal:
             self.col_original = self.row_original
@@ -136,6 +142,10 @@ class ResourceGroup:
         ``vector`` is an optional input that overrides the data. It must be in the same order and have the same length as the data package indices (before possible aggregation and masking); see discussion above.
 
         """
+        if self.empty:
+            self.current_data = np.array([])
+            return self.row, self.col, self.current_data
+
         if vector is not None:
             data = vector
         elif self.vector:

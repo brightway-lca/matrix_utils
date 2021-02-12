@@ -1,3 +1,4 @@
+from .errors import EmptyArray
 import numpy as np
 
 
@@ -23,6 +24,9 @@ class ArrayMapper:
 
     def __init__(self, *, array: np.ndarray, sparse_cutoff: float = 0.1):
         self._check_input_array(array)
+
+        if array.shape == (0,):
+            raise EmptyArray("Empty array can't be used to map values")
         # Even if already unique, this only adds ~2ms for 100.000 elements
         self.array = np.unique(array)
 
@@ -37,17 +41,22 @@ class ArrayMapper:
         self.index_array = np.zeros(self.max_value + 1) - 1
         self.index_array[self.array] = np.arange(len(self.array))
 
+
     def __len__(self):
         return self.array.shape[0]
 
     def _check_input_array(self, array: np.ndarray) -> None:
         if len(array.shape) != 1:
             raise ValueError("array must be 1-d")
-        if array.min() < 0:
+        if array.shape[0] and array.min() < 0:
             raise ValueError("Array index values must be positive")
 
     def map_array(self, array: np.ndarray) -> np.ndarray:
         self._check_input_array(array)
+
+        if array.shape == (0,):
+            # Empty array
+            return array.copy()
 
         result = np.zeros_like(array) - 1
         mask = array <= self.max_value
