@@ -1,9 +1,19 @@
 from .aggregation import aggregate_with_sparse
 from .array_mapper import ArrayMapper
+from .errors import IncompatibleDataTypes
 from .indexers import Indexer, Proxy
 from bw_processing import DatapackageBase
-from typing import Any
+from stats_arrays import MCRandomNumberGenerator
+from typing import Any, Union
 import numpy as np
+
+
+class FakeRNG:
+    def __init__(self, array):
+        self.array = array
+
+    def __next__(self):
+        return self.array
 
 
 class ResourceGroup:
@@ -40,17 +50,39 @@ class ResourceGroup:
         package: DatapackageBase,
         group_label: str,
         use_distributions: bool = False,
+        seed_override: Union[int, None] = None,
     ):
         self.label = group_label
         self.package = package
         self.use_distributions = use_distributions
         self.vector = self.is_vector()
+
+        if self.use_distributions and not self.vector:
+            raise IncompatibleDataTypes
+        elif self.use_distributions:
+            seed = seed_override or self.package.metadata.get("seed")
+            if self.has_distributions:
+                self.rng = MCRandomNumberGenerator(params=self.data, seed=seed)
+            else:
+                self.rng = FakeRNG(self.data)
+
         self.aggregate = self.package.metadata["sum_intra_duplicates"]
         self.empty = self.indices.shape == (0,)
 
     @property
+    def has_distributions(self):
+        try:
+            self.get_resource_by_suffix("distributions")
+            return True
+        except KeyError:
+            return False
+
+    @property
     def data(self):
-        return self.get_resource_by_suffix("data")
+        if self.use_distributions and self.has_distributions:
+            return self.get_resource_by_suffix("distributions")
+        else:
+            return self.get_resource_by_suffix("data")
 
     @property
     def flip(self):
@@ -149,13 +181,17 @@ class ResourceGroup:
         if vector is not None:
             data = vector
         elif self.vector:
-            try:
-                data = next(self.data)
-            except TypeError:
-                data = self.data
+            if self.use_distributions:
+                data = next(self.rng)
+            else:
+                try:
+                    data = next(self.data)
+                except TypeError:
+                    data = self.data
         else:
             data = self.data[:, self.indexer.index % self.ncols]
 
+        # Copy to avoid modifying original data
         data = data.copy()
 
         try:
@@ -163,6 +199,7 @@ class ResourceGroup:
         except KeyError:
             pass
 
+        # Second copy because we want to store the data before aggregation
         self.current_data = data.copy()
 
         if self.aggregate:

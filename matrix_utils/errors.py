@@ -20,3 +20,9 @@ class EmptyArray(MatrixUtilsError):
     """Empty array can't be used"""
 
     pass
+
+
+class IncompatibleDataTypes(MatrixUtilsError):
+    """Data types present in resource group can't be both present"""
+
+    pass
