@@ -113,9 +113,9 @@ class ResourceGroup:
         else:
             self.col_mapper = mapper
 
-    def build_mask(self, a, b):
+    def build_mask(self, row, col):
         """Build boolean array mask where ``False`` means that a data element is not present, and should be ignored. See discussion above."""
-        mask = (a != -1) * (b != -1)
+        mask = (row != -1) * (col != -1)
         if (~mask).sum():
             return mask
         else:
