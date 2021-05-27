@@ -4,7 +4,7 @@ from .errors import IncompatibleDataTypes
 from .indexers import Indexer, Proxy
 from bw_processing import DatapackageBase
 from stats_arrays import MCRandomNumberGenerator
-from typing import Any, Union
+from typing import Any, Union, Callable
 import numpy as np
 
 
@@ -51,11 +51,18 @@ class ResourceGroup:
         group_label: str,
         use_distributions: bool = False,
         seed_override: Union[int, None] = None,
+        custom_filter: Union[Callable, None] = None,
     ):
         self.label = group_label
         self.package = package
         self.use_distributions = use_distributions
+        self.custom_filter = custom_filter
         self.vector = self.is_vector()
+
+        if custom_filter is not None:
+            self.filter_mask = custom_filter(self.raw_indices)
+        else:
+            self.filter_mask = None
 
         if self.use_distributions and not self.vector:
             raise IncompatibleDataTypes
@@ -85,12 +92,30 @@ class ResourceGroup:
             return self.get_resource_by_suffix("data")
 
     @property
-    def flip(self):
+    def raw_flip(self):
+        """The source data for the flip array."""
         return self.get_resource_by_suffix("flip")
 
     @property
-    def indices(self):
+    def flip(self):
+        """The flip array, with the custom filter mask applied if necessary."""
+        if self.filter_mask is None:
+            return self.raw_flip
+        else:
+            return self.raw_flip[self.filter_mask]
+
+    @property
+    def raw_indices(self):
+        """The source data for the indices array."""
         return self.get_resource_by_suffix("indices")
+
+    @property
+    def indices(self):
+        """The indices array, with the custom filter mask applied if necessary."""
+        if self.filter_mask is None:
+            return self.raw_indices
+        else:
+            return self.raw_indices[self.filter_mask]
 
     def get_resource_by_suffix(self, suffix: str) -> Any:
         return self.package.get_resource(self.label + "." + suffix)[0]
@@ -194,9 +219,13 @@ class ResourceGroup:
         # Copy to avoid modifying original data
         data = data.copy()
 
+        if self.filter_mask is not None:
+            data = data[self.filter_mask]
+
         try:
             data[self.flip] *= -1
         except KeyError:
+            # No flip array
             pass
 
         # Second copy because we want to store the data before aggregation

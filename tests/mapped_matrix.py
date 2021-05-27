@@ -1,6 +1,8 @@
-from fixtures import basic_mm
+from fixtures import basic_mm, diagonal
 from matrix_utils import MappedMatrix
+from matrix_utils.errors import EmptyArray
 import numpy as np
+import pytest
 
 
 def test_mappers():
@@ -28,3 +30,21 @@ def test_no_packages():
 
 def test_no_useful_pacakges():
     pass
+
+
+def test_custom_filter():
+    mm = MappedMatrix(
+        packages=[diagonal()], matrix="foo", use_arrays=False, use_distributions=False,
+    )
+    assert mm.matrix.shape == (4, 2)
+
+    mm = MappedMatrix(
+        packages=[diagonal()], matrix="foo", use_arrays=False, use_distributions=False, custom_filter=lambda x: x['col'] == 1
+    )
+    assert mm.matrix.shape == (3, 1)
+    assert mm.matrix.sum() == 1 - 2.3 + 25
+
+    with pytest.raises(EmptyArray):
+        mm = MappedMatrix(
+            packages=[diagonal()], matrix="foo", use_arrays=False, use_distributions=False, custom_filter=lambda x: x['col'] == 2
+        )

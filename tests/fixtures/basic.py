@@ -63,3 +63,17 @@ def aggregation(**kwargs):
         data_array=np.array([1, 2.3, 4, 17, 25]),
     )
     return dp
+
+
+def diagonal(**kwargs):
+    dp = bwp.create_datapackage(**kwargs)
+    dp.add_persistent_vector(
+        matrix="foo",
+        name="vector",
+        indices_array=np.array(
+            [(0, 1), (1, 1), (2, 0), (3, 1)], dtype=bwp.INDICES_DTYPE
+        ),
+        data_array=np.array([1, 2.3, 4, 25]),
+        flip_array=np.array([0, 1, 0, 0], dtype=bool),
+    )
+    return dp

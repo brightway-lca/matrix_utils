@@ -76,7 +76,7 @@ def test_basic_distributions():
     assert results[row[1], col[1], :].min() >= 0
     assert results[row[1], col[1], :].min() <= 20
     # mean is 35/3
-    assert 9 < np.mean(results[row[1], col[1], :]) < 15
+    assert 7.5 < np.mean(results[row[1], col[1], :]) < 16.5
     assert np.unique(results).shape == (40,)
 
 
