@@ -32,6 +32,23 @@ def test_no_useful_pacakges():
     pass
 
 
+def test_diagonal_matrix():
+    mm = MappedMatrix(
+        packages=[diagonal()], matrix="foo", use_arrays=False, use_distributions=False,
+    )
+    assert mm.matrix.shape == (4, 2)
+    assert np.allclose(mm.matrix.data, [1, -2.3, 4, 25])
+
+    mm = MappedMatrix(
+        packages=[diagonal()], matrix="foo", use_arrays=False, use_distributions=False, diagonal=True,
+    )
+    assert mm.matrix.shape == (4, 4)
+    for x, y in zip(range(4), [1, -2.3, 4, 25]):
+        assert mm.matrix[x, x] == y
+
+    assert np.allclose(mm.matrix.data, [1, -2.3, 4, 25])
+
+
 def test_custom_filter():
     mm = MappedMatrix(
         packages=[diagonal()], matrix="foo", use_arrays=False, use_distributions=False,
