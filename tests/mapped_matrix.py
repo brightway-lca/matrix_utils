@@ -1,6 +1,7 @@
 from fixtures import basic_mm, diagonal
 from matrix_utils import MappedMatrix
 from matrix_utils.errors import EmptyArray
+import bw_processing as bwp
 import numpy as np
 import pytest
 
@@ -65,3 +66,38 @@ def test_custom_filter():
         mm = MappedMatrix(
             packages=[diagonal()], matrix="foo", use_arrays=False, use_distributions=False, custom_filter=lambda x: x['col'] == 2
         )
+
+
+def test_indexer_override():
+    s = bwp.create_datapackage(sequential=True)
+    s.add_persistent_array(
+        matrix="foo",
+        data_array=np.arange(12).reshape(3, 4),
+        indices_array=np.array(
+            [(0, 0), (1, 1), (0, 1)],
+            dtype=bwp.INDICES_DTYPE
+        )
+    )
+    mm = MappedMatrix(
+        packages=[s], matrix="foo", use_arrays=True, use_distributions=False,
+    )
+    assert np.allclose(mm.matrix.toarray(), [[0, 8], [0, 4]])
+    next(mm)
+    assert np.allclose(mm.matrix.toarray(), [[1, 9], [0, 5]])
+    next(mm)
+    assert np.allclose(mm.matrix.toarray(), [[2, 10], [0, 6]])
+
+    class MyIndexer:
+        index = 2
+
+        def __next__(self):
+            pass
+
+    mm = MappedMatrix(
+        packages=[s], matrix="foo", use_arrays=True, use_distributions=False, indexer_override=MyIndexer()
+    )
+    assert np.allclose(mm.matrix.toarray(), [[2, 10], [0, 6]])
+    next(mm)
+    assert np.allclose(mm.matrix.toarray(), [[2, 10], [0, 6]])
+    next(mm)
+    assert np.allclose(mm.matrix.toarray(), [[2, 10], [0, 6]])
