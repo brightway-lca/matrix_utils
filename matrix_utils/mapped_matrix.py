@@ -4,6 +4,7 @@ from .resource_group import ResourceGroup
 from bw_processing import Datapackage
 from scipy import sparse
 from typing import Union, Sequence
+from typing import Union, Sequence, Any, Callable
 import numpy as np
 
 
@@ -21,7 +22,8 @@ class MappedMatrix:
         row_mapper: Union[ArrayMapper, None] = None,
         col_mapper: Union[ArrayMapper, None] = None,
         seed_override: Union[int, None] = None,
-        diagonal=False,
+        indexer_override: Any = None,
+        diagonal: bool = False,
     ):
         self.seed_override = seed_override
         self.diagonal = diagonal
@@ -32,6 +34,7 @@ class MappedMatrix:
                     package=filtered_package,
                     group_label=group_label,
                     use_distributions=use_distributions,
+                    seed_override=seed_override,
                 )
                 for group_label, filtered_package in package.groups.items()
                 if self.has_relevant_data(
@@ -43,7 +46,7 @@ class MappedMatrix:
             ]
         }
         self.groups = tuple([obj for lst in self.packages.values() for obj in lst])
-        self.add_indexers(seed_override)
+        self.add_indexers(indexer_override, seed_override)
 
         self.row_mapper = row_mapper or ArrayMapper(
                 array=np.hstack([obj.unique_row_indices() for obj in self.groups]),
@@ -108,10 +111,13 @@ class MappedMatrix:
         self.iterate_indexers()
         self.rebuild_matrix()
 
-    def add_indexers(self, seed_override):
+    def add_indexers(self, indexer_override: Any, seed_override: Union[int, None]):
         """Add indexers"""
         for package, resources in self.packages.items():
-            if package.metadata["combinatorial"]:
+            if indexer_override if not None:
+                for i, obj in enumerate(resources):
+                    obj.add_indexer(indexer_override)
+            elif package.metadata["combinatorial"]:
                 package.indexer = CombinatorialIndexer(
                     [obj.ncols for obj in resources if obj.ncols]
                 )
