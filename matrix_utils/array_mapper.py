@@ -41,7 +41,6 @@ class ArrayMapper:
         self.index_array = np.zeros(self.max_value + 1) - 1
         self.index_array[self.array] = np.arange(len(self.array))
 
-
     def __len__(self):
         return self.array.shape[0]
 

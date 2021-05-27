@@ -9,6 +9,7 @@ MAX_SIGNED_32BIT_INT = 2147483647
 
 class Indexer:
     """Base class for indexers"""
+
     pass
 
 

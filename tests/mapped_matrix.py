@@ -10,7 +10,10 @@ def test_mappers():
     given = np.array([4, 2, 1, 0])
     expected = np.array([2, 1, -1, 0])
     mm = MappedMatrix(
-        packages=[basic_mm()], matrix="foo", use_arrays=False, use_distributions=False,
+        packages=[basic_mm()],
+        matrix="foo",
+        use_arrays=False,
+        use_distributions=False,
     )
     result = mm.row_mapper.map_array(given)
     assert np.allclose(result, expected)
@@ -18,7 +21,10 @@ def test_mappers():
 
 def test_group_filtering():
     mm = MappedMatrix(
-        packages=[basic_mm()], matrix="foo", use_arrays=False, use_distributions=False,
+        packages=[basic_mm()],
+        matrix="foo",
+        use_arrays=False,
+        use_distributions=False,
     )
     assert len(mm.groups) == 2
     assert mm.groups[0].label == "vector"
@@ -35,13 +41,20 @@ def test_no_useful_pacakges():
 
 def test_diagonal_matrix():
     mm = MappedMatrix(
-        packages=[diagonal()], matrix="foo", use_arrays=False, use_distributions=False,
+        packages=[diagonal()],
+        matrix="foo",
+        use_arrays=False,
+        use_distributions=False,
     )
     assert mm.matrix.shape == (4, 2)
     assert np.allclose(mm.matrix.data, [1, -2.3, 4, 25])
 
     mm = MappedMatrix(
-        packages=[diagonal()], matrix="foo", use_arrays=False, use_distributions=False, diagonal=True,
+        packages=[diagonal()],
+        matrix="foo",
+        use_arrays=False,
+        use_distributions=False,
+        diagonal=True,
     )
     assert mm.matrix.shape == (4, 4)
     for x, y in zip(range(4), [1, -2.3, 4, 25]):
@@ -52,19 +65,30 @@ def test_diagonal_matrix():
 
 def test_custom_filter():
     mm = MappedMatrix(
-        packages=[diagonal()], matrix="foo", use_arrays=False, use_distributions=False,
+        packages=[diagonal()],
+        matrix="foo",
+        use_arrays=False,
+        use_distributions=False,
     )
     assert mm.matrix.shape == (4, 2)
 
     mm = MappedMatrix(
-        packages=[diagonal()], matrix="foo", use_arrays=False, use_distributions=False, custom_filter=lambda x: x['col'] == 1
+        packages=[diagonal()],
+        matrix="foo",
+        use_arrays=False,
+        use_distributions=False,
+        custom_filter=lambda x: x["col"] == 1,
     )
     assert mm.matrix.shape == (3, 1)
     assert mm.matrix.sum() == 1 - 2.3 + 25
 
     with pytest.raises(EmptyArray):
         mm = MappedMatrix(
-            packages=[diagonal()], matrix="foo", use_arrays=False, use_distributions=False, custom_filter=lambda x: x['col'] == 2
+            packages=[diagonal()],
+            matrix="foo",
+            use_arrays=False,
+            use_distributions=False,
+            custom_filter=lambda x: x["col"] == 2,
         )
 
 
@@ -73,13 +97,13 @@ def test_indexer_override():
     s.add_persistent_array(
         matrix="foo",
         data_array=np.arange(12).reshape(3, 4),
-        indices_array=np.array(
-            [(0, 0), (1, 1), (0, 1)],
-            dtype=bwp.INDICES_DTYPE
-        )
+        indices_array=np.array([(0, 0), (1, 1), (0, 1)], dtype=bwp.INDICES_DTYPE),
     )
     mm = MappedMatrix(
-        packages=[s], matrix="foo", use_arrays=True, use_distributions=False,
+        packages=[s],
+        matrix="foo",
+        use_arrays=True,
+        use_distributions=False,
     )
     assert np.allclose(mm.matrix.toarray(), [[0, 8], [0, 4]])
     next(mm)
@@ -94,7 +118,11 @@ def test_indexer_override():
             pass
 
     mm = MappedMatrix(
-        packages=[s], matrix="foo", use_arrays=True, use_distributions=False, indexer_override=MyIndexer()
+        packages=[s],
+        matrix="foo",
+        use_arrays=True,
+        use_distributions=False,
+        indexer_override=MyIndexer(),
     )
     assert np.allclose(mm.matrix.toarray(), [[2, 10], [0, 6]])
     next(mm)

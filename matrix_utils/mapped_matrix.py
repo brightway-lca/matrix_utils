@@ -70,12 +70,12 @@ class MappedMatrix:
         self.add_indexers(indexer_override, seed_override)
 
         self.row_mapper = row_mapper or ArrayMapper(
-                array=np.hstack([obj.unique_row_indices() for obj in self.groups]),
-            )
+            array=np.hstack([obj.unique_row_indices() for obj in self.groups]),
+        )
         if not diagonal:
             self.col_mapper = col_mapper or ArrayMapper(
-                    array=np.hstack([obj.unique_col_indices() for obj in self.groups]),
-                )
+                array=np.hstack([obj.unique_col_indices() for obj in self.groups]),
+            )
 
         self.add_mappers(
             axis=0,
@@ -83,10 +83,7 @@ class MappedMatrix:
         )
 
         if not diagonal:
-            self.add_mappers(
-                axis=1,
-                mapper=self.col_mapper
-            )
+            self.add_mappers(axis=1, mapper=self.col_mapper)
         self.map_indices()
 
         row_indices = np.hstack([obj.row for obj in self.groups])
@@ -96,12 +93,18 @@ class MappedMatrix:
             x = int(self.row_mapper.index_array.max() + 1)
             dimensions = (x, x)
         else:
-            dimensions = (int(self.row_mapper.index_array.max() + 1), int(self.col_mapper.index_array.max() + 1))
+            dimensions = (
+                int(self.row_mapper.index_array.max() + 1),
+                int(self.col_mapper.index_array.max() + 1),
+            )
 
         self.matrix = sparse.coo_matrix(
-            (np.zeros(len(row_indices)), (row_indices, col_indices),),
+            (
+                np.zeros(len(row_indices)),
+                (row_indices, col_indices),
+            ),
             dimensions,
-            dtype=np.float64
+            dtype=np.float64,
         ).tocsr()
 
         self.rebuild_matrix()

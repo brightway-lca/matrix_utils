@@ -1,4 +1,9 @@
-from stats_arrays import UncertaintyBase, NormalUncertainty, TriangularUncertainty, UniformUncertainty
+from stats_arrays import (
+    UncertaintyBase,
+    NormalUncertainty,
+    TriangularUncertainty,
+    UniformUncertainty,
+)
 import bw_processing as bwp
 import matrix_utils as mu
 import numpy as np
@@ -10,39 +15,53 @@ def mc_fixture(**kwargs):
     dp.add_persistent_vector(
         matrix="foo",
         name="first",
-        indices_array=np.array(
-            [(0, 0), (0, 1)], dtype=bwp.INDICES_DTYPE
-        ),
+        indices_array=np.array([(0, 0), (0, 1)], dtype=bwp.INDICES_DTYPE),
         data_array=np.array([1, 2]),
         distributions_array=UncertaintyBase.from_dicts(
-            {'loc': 0, 'scale': 0.5, 'uncertainty_type': NormalUncertainty.id},
-            {'loc': 4, 'minimum': 2, 'maximum': 10, 'uncertainty_type': TriangularUncertainty.id},
-        )
+            {"loc": 0, "scale": 0.5, "uncertainty_type": NormalUncertainty.id},
+            {
+                "loc": 4,
+                "minimum": 2,
+                "maximum": 10,
+                "uncertainty_type": TriangularUncertainty.id,
+            },
+        ),
     )
     dp.add_persistent_vector(
         matrix="foo",
         name="second",
-        indices_array=np.array(
-            [(1, 0), (1, 1)], dtype=bwp.INDICES_DTYPE
-        ),
+        indices_array=np.array([(1, 0), (1, 1)], dtype=bwp.INDICES_DTYPE),
         data_array=np.array([11, 12.3]),
         distributions_array=UncertaintyBase.from_dicts(
-            {'loc': 10, 'scale': 0.5, 'uncertainty_type': NormalUncertainty.id},
-            {'loc': 15, 'minimum': 0, 'maximum': 20, 'uncertainty_type': TriangularUncertainty.id},
-        )
+            {"loc": 10, "scale": 0.5, "uncertainty_type": NormalUncertainty.id},
+            {
+                "loc": 15,
+                "minimum": 0,
+                "maximum": 20,
+                "uncertainty_type": TriangularUncertainty.id,
+            },
+        ),
     )
     dp.add_persistent_vector(
         matrix="bar",
         name="third",
-        indices_array=np.array(
-            [(10, 20), (11, 21)], dtype=bwp.INDICES_DTYPE
-        ),
+        indices_array=np.array([(10, 20), (11, 21)], dtype=bwp.INDICES_DTYPE),
         data_array=np.array([12, 34]),
         # PDFs can be completely different from "best guess" values
         distributions_array=UncertaintyBase.from_dicts(
-            {'loc': 100, 'minimum': 0, 'maximum': 200, 'uncertainty_type': UniformUncertainty.id},
-            {'loc': 15, 'minimum': 0, 'maximum': 20, 'uncertainty_type': TriangularUncertainty.id},
-        )
+            {
+                "loc": 100,
+                "minimum": 0,
+                "maximum": 200,
+                "uncertainty_type": UniformUncertainty.id,
+            },
+            {
+                "loc": 15,
+                "minimum": 0,
+                "maximum": 20,
+                "uncertainty_type": TriangularUncertainty.id,
+            },
+        ),
     )
     # No uncertainties present
     dp.add_persistent_vector(
@@ -100,7 +119,7 @@ def test_distributions_without_uncertainties():
     assert np.allclose(results[row[10], col[10], :], 11)
     assert np.allclose(results[row[18], col[7], :], 125)
     # Zero plus 4 fixed plus 2 variable over 10 iterations
-    assert np.unique(results).shape == ( 25,)
+    assert np.unique(results).shape == (25,)
 
 
 def test_distributions_not_allowed():
@@ -153,7 +172,9 @@ def test_distributions_seed_override():
         results[:, :, i] = mm.matrix.toarray()
 
     dp = mc_fixture(seed=123)
-    mm = mu.MappedMatrix(packages=[dp], matrix="foo", use_distributions=True, seed_override=7)
+    mm = mu.MappedMatrix(
+        packages=[dp], matrix="foo", use_distributions=True, seed_override=7
+    )
 
     first = np.zeros((2, 2, 10))
     first[:, :, 0] = mm.matrix.toarray()
@@ -163,7 +184,9 @@ def test_distributions_seed_override():
         first[:, :, i] = mm.matrix.toarray()
 
     dp = mc_fixture(seed=567)
-    mm = mu.MappedMatrix(packages=[dp], matrix="foo", use_distributions=True, seed_override=7)
+    mm = mu.MappedMatrix(
+        packages=[dp], matrix="foo", use_distributions=True, seed_override=7
+    )
 
     second = np.zeros((2, 2, 10))
     second[:, :, 0] = mm.matrix.toarray()

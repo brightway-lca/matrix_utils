@@ -44,6 +44,7 @@ class ResourceGroup:
     The current data, as entered into the matrix, is given by ``.current_data``.
 
     """
+
     def __init__(
         self,
         *,
@@ -123,7 +124,7 @@ class ResourceGroup:
     def is_vector(self) -> bool:
         """Determine if this is a vector or array resource"""
         metadata = self.package.get_resource(self.label + ".data")[1]
-        return metadata.get('category') == 'vector'
+        return metadata.get("category") == "vector"
 
     @property
     def ncols(self):
@@ -164,11 +165,17 @@ class ResourceGroup:
             self.count = max(self.row_original.max(), self.col_original.max()) + 1
             if self.mask is not None:
                 self.row, self.col, _ = aggregate_with_sparse(
-                    self.row_original[self.mask], self.col_original[self.mask], np.zeros(self.mask.sum()), self.count
+                    self.row_original[self.mask],
+                    self.col_original[self.mask],
+                    np.zeros(self.mask.sum()),
+                    self.count,
                 )
             else:
                 self.row, self.col, _ = aggregate_with_sparse(
-                    self.row_original, self.col_original, np.zeros(self.row_original.shape), self.count
+                    self.row_original,
+                    self.col_original,
+                    np.zeros(self.row_original.shape),
+                    self.count,
                 )
 
         else:
@@ -234,7 +241,10 @@ class ResourceGroup:
         if self.aggregate:
             if self.mask is not None:
                 return aggregate_with_sparse(
-                    self.row_original[self.mask], self.col_original[self.mask], data[self.mask], self.count
+                    self.row_original[self.mask],
+                    self.col_original[self.mask],
+                    data[self.mask],
+                    self.count,
                 )
             else:
                 return aggregate_with_sparse(

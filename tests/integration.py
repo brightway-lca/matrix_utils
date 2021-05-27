@@ -6,7 +6,10 @@ import bw_processing as bwp
 
 def test_basic_matrix_construction():
     mm = MappedMatrix(
-        packages=[basic_mm()], matrix="foo", use_arrays=False, use_distributions=False,
+        packages=[basic_mm()],
+        matrix="foo",
+        use_arrays=False,
+        use_distributions=False,
     )
     row = np.array([0, 1, 2, 3, 4, 5, 6, 7])
     col = np.array([0, 1, 2, 3, 7, 6, 5, 4])
@@ -19,7 +22,10 @@ def test_basic_matrix_construction():
 
 def test_matrix_construction_overlapping_substitution():
     mm = MappedMatrix(
-        packages=[overlapping(sum_intra_duplicates=True, sum_inter_duplicates=False)], matrix="foo", use_arrays=False, use_distributions=False,
+        packages=[overlapping(sum_intra_duplicates=True, sum_inter_duplicates=False)],
+        matrix="foo",
+        use_arrays=False,
+        use_distributions=False,
     )
     mm.rebuild_matrix()
     row = np.array([0, 1, 2, 3, 4, 5])
@@ -33,7 +39,10 @@ def test_matrix_construction_overlapping_substitution():
 
 def test_matrix_construction_overlapping_sum():
     mm = MappedMatrix(
-        packages=[overlapping(sum_intra_duplicates=False, sum_inter_duplicates=True)], matrix="foo", use_arrays=False, use_distributions=False,
+        packages=[overlapping(sum_intra_duplicates=False, sum_inter_duplicates=True)],
+        matrix="foo",
+        use_arrays=False,
+        use_distributions=False,
     )
     mm.rebuild_matrix()
     row = np.array([0, 1, 2, 3, 4, 5])
@@ -49,7 +58,10 @@ def test_matrix_construction_overlapping_sum():
 
 def test_matrix_construction_internal_aggregation():
     mm = MappedMatrix(
-        packages=[aggregation()], matrix="foo", use_arrays=False, use_distributions=False,
+        packages=[aggregation()],
+        matrix="foo",
+        use_arrays=False,
+        use_distributions=False,
     )
     row = np.array([0, 1, 2, 3])
     col = np.array([0, 1, 2, 3])
@@ -62,7 +74,10 @@ def test_matrix_construction_internal_aggregation():
 
 def test_matrix_construction_no_internal_aggregation():
     mm = MappedMatrix(
-        packages=[aggregation(sum_intra_duplicates=False)], matrix="foo", use_arrays=False, use_distributions=False,
+        packages=[aggregation(sum_intra_duplicates=False)],
+        matrix="foo",
+        use_arrays=False,
+        use_distributions=False,
     )
     row = np.array([0, 1, 2, 3])
     col = np.array([0, 1, 2, 3])
@@ -78,37 +93,46 @@ def test_arrays_sequential_iteration():
     dp.add_persistent_vector(
         matrix="foo",
         indices_array=np.array(
-            [(100, 400), (101, 401), (102, 402), (103, 403),  # Production
-             (100, 401), (101, 402), (101, 403), (102, 403)], # Inputs
-            dtype=bwp.INDICES_DTYPE  # Means first element is row, second is column
+            [
+                (100, 400),
+                (101, 401),
+                (102, 402),
+                (103, 403),  # Production
+                (100, 401),
+                (101, 402),
+                (101, 403),
+                (102, 403),
+            ],  # Inputs
+            dtype=bwp.INDICES_DTYPE,  # Means first element is row, second is column
         ),
-        flip_array=np.array([
-            False, False, False, False, # Production
-            True, True, True, True      # Inputs
-        ]),
-        data_array=np.array([
-            1, 1, 1, 1,  # Production
-            2, 4, 8, 16  # Inputs
-        ]),
+        flip_array=np.array(
+            [False, False, False, False, True, True, True, True]  # Production  # Inputs
+        ),
+        data_array=np.array([1, 1, 1, 1, 2, 4, 8, 16]),  # Production  # Inputs
     )
     s = bwp.create_datapackage(sequential=True)
     s.add_persistent_array(
         matrix="foo",
-        data_array=np.array([
-            [-10, -6],  # Amount of 101 needed by 404
-            [-6, -10],  # Amount of 101 needed by 405
-            [0, -20],   # Amount of 102 needed by 404
-            [-20, 0],   # Amount of 102 needed by 405
-            [1, 1],     # Production of 404
-            [1, 1],     # Production of 405
-        ]),
+        data_array=np.array(
+            [
+                [-10, -6],  # Amount of 101 needed by 404
+                [-6, -10],  # Amount of 101 needed by 405
+                [0, -20],  # Amount of 102 needed by 404
+                [-20, 0],  # Amount of 102 needed by 405
+                [1, 1],  # Production of 404
+                [1, 1],  # Production of 405
+            ]
+        ),
         indices_array=np.array(
             [(101, 404), (101, 405), (102, 404), (102, 405), (104, 404), (105, 405)],
-            dtype=bwp.INDICES_DTYPE
-        )
+            dtype=bwp.INDICES_DTYPE,
+        ),
     )
     mm = MappedMatrix(
-        packages=[dp, s], matrix="foo", use_arrays=True, use_distributions=False,
+        packages=[dp, s],
+        matrix="foo",
+        use_arrays=True,
+        use_distributions=False,
     )
     assert mm.matrix[1, 4] == -10
     next(mm)
