@@ -4,6 +4,7 @@
 
 * Add `custom_filter` argument to filter out some package data based on indices values.
 * Add `indexer_override` argument for custom indexers.
+* `filter_groups_for_packages` as a separate utility function instead of in `DataPackage` class.
 
 ## [0.1] - 2021-05-19
 

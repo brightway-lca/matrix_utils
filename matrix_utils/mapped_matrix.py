@@ -1,6 +1,7 @@
 from .array_mapper import ArrayMapper
 from .indexers import RandomIndexer, SequentialIndexer, CombinatorialIndexer
 from .resource_group import ResourceGroup
+from .utils import filter_groups_for_packages
 from bw_processing import Datapackage
 from scipy import sparse
 from typing import Union, Sequence, Any, Callable
@@ -57,14 +58,11 @@ class MappedMatrix:
                     seed_override=seed_override,
                     custom_filter=custom_filter,
                 )
-                for group_label, filtered_package in package.groups.items()
-                if self.has_relevant_data(
-                    group_label, package, use_vectors, use_arrays, use_distributions
-                )
+                for group_label, filtered_package in lst
             ]
-            for package in [
-                obj.filter_by_attribute("matrix", matrix) for obj in packages
-            ]
+            for package, lst in filter_groups_for_packages(
+                packages, matrix, use_vectors, use_arrays, use_distributions
+            ).items()
         }
         self.groups = tuple([obj for lst in self.packages.values() for obj in lst])
         self.add_indexers(indexer_override, seed_override)
@@ -158,19 +156,3 @@ class MappedMatrix:
                 )
                 for obj in resources:
                     obj.add_indexer(indexer=package.indexer)
-
-    def has_relevant_data(
-        self, group_label, package, use_vectors, use_arrays, use_distributions
-    ):
-        return any(
-            res
-            for res in package.resources
-            if res["group"] == group_label
-            and (res["kind"] == "data" and res["category"] == "vector" and use_vectors)
-            or (
-                res["kind"] == "distributions"
-                and res["category"] == "vector"
-                and use_distributions
-            )
-            or (res["kind"] == "data" and res["category"] == "array" and use_arrays)
-        )
