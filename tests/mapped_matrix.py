@@ -129,3 +129,28 @@ def test_indexer_override():
     assert np.allclose(mm.matrix.toarray(), [[2, 10], [0, 6]])
     next(mm)
     assert np.allclose(mm.matrix.toarray(), [[2, 10], [0, 6]])
+
+
+def test_existing_indexer():
+    class MyIndexer:
+        index = 2
+
+        def __next__(self):
+            pass
+
+    s = bwp.create_datapackage(sequential=True)
+    s.add_persistent_array(
+        matrix="foo",
+        data_array=np.arange(12).reshape(3, 4),
+        indices_array=np.array([(0, 0), (1, 1), (0, 1)], dtype=bwp.INDICES_DTYPE),
+    )
+    s.indexer = MyIndexer()
+    mm = MappedMatrix(
+        packages=[s],
+        matrix="foo",
+        use_arrays=True,
+        use_distributions=False,
+    )
+    assert np.allclose(mm.matrix.toarray(), [[2, 10], [0, 6]])
+    next(mm)
+    assert np.allclose(mm.matrix.toarray(), [[2, 10], [0, 6]])

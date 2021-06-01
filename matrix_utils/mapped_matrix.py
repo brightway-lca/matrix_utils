@@ -136,10 +136,14 @@ class MappedMatrix:
     def add_indexers(self, indexer_override: Any, seed_override: Union[int, None]):
         """Add indexers"""
         for package, resources in self.packages.items():
-            if indexer_override is not None:
+            if hasattr(package, "indexer"):
+                print("Has indexer")
+                for obj in resources:
+                    obj.add_indexer(indexer=package.indexer)
+            elif indexer_override is not None:
                 package.indexer = indexer_override
-                for i, obj in enumerate(resources):
-                    obj.add_indexer(package.indexer)
+                for obj in resources:
+                    obj.add_indexer(indexer=package.indexer)
             elif package.metadata["combinatorial"]:
                 package.indexer = CombinatorialIndexer(
                     [obj.ncols for obj in resources if obj.ncols]
