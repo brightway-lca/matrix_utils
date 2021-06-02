@@ -1,8 +1,10 @@
+from .errors import AllArraysEmpty
+import numpy as np
 
 
 def filter_groups_for_packages(
     packages, matrix_label, use_vectors, use_arrays, use_distributions
-):
+) -> dict:
     return {
         package: [
             (group_label, filtered_package)
@@ -11,11 +13,15 @@ def filter_groups_for_packages(
                 group_label, package, use_vectors, use_arrays, use_distributions
             )
         ]
-        for package in [obj.filter_by_attribute("matrix", matrix_label) for obj in packages]
+        for package in [
+            obj.filter_by_attribute("matrix", matrix_label) for obj in packages
+        ]
     }
 
 
-def has_relevant_data(group_label, package, use_vectors, use_arrays, use_distributions):
+def has_relevant_data(
+    group_label, package, use_vectors, use_arrays, use_distributions
+) -> bool:
     return any(
         res
         for res in package.resources
@@ -30,3 +36,13 @@ def has_relevant_data(group_label, package, use_vectors, use_arrays, use_distrib
         or (res["kind"] == "data" and res["category"] == "vector" and use_distributions)
         or (res["kind"] == "data" and res["category"] == "array" and use_arrays)
     )
+
+
+def safe_concatenate(arrays: [np.ndarray], empty_ok: bool = False) -> np.ndarray:
+    try:
+        return np.hstack(arrays)
+    except ValueError:
+        if empty_ok:
+            return np.array([])
+        else:
+            raise AllArraysEmpty
