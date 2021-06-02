@@ -140,6 +140,11 @@ def test_no_packages_empty_ok():
     assert mm.matrix.shape == (0, 0)
 
 
+def test_no_useful_packages_empty_ok():
+    mm = MappedMatrix(packages=[diagonal()], matrix="bar", empty_ok=True)
+    assert mm.matrix.shape == (0, 0)
+
+
 def test_existing_indexer():
     class MyIndexer:
         index = 2

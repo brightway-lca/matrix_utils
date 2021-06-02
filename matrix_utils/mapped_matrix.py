@@ -1,7 +1,7 @@
 from .array_mapper import ArrayMapper
 from .indexers import RandomIndexer, SequentialIndexer, CombinatorialIndexer
 from .resource_group import ResourceGroup
-from .utils import filter_groups_for_packages, safe_concatenate
+from .utils import filter_groups_for_packages, safe_concatenate_indices
 from bw_processing import Datapackage
 from scipy import sparse
 from typing import Union, Sequence, Any, Callable
@@ -70,14 +70,14 @@ class MappedMatrix:
         self.add_indexers(indexer_override, seed_override)
 
         self.row_mapper = row_mapper or ArrayMapper(
-            array=safe_concatenate(
+            array=safe_concatenate_indices(
                 [obj.unique_row_indices() for obj in self.groups], empty_ok
             ),
             empty_ok=empty_ok,
         )
         if not diagonal:
             self.col_mapper = col_mapper or ArrayMapper(
-                array=safe_concatenate(
+                array=safe_concatenate_indices(
                     [obj.unique_col_indices() for obj in self.groups], empty_ok
                 ),
                 empty_ok=empty_ok,
@@ -92,8 +92,8 @@ class MappedMatrix:
             self.add_mappers(axis=1, mapper=self.col_mapper)
         self.map_indices()
 
-        row_indices = np.hstack([obj.row for obj in self.groups])
-        col_indices = np.hstack([obj.col for obj in self.groups])
+        row_indices = safe_concatenate_indices([obj.row for obj in self.groups], empty_ok)
+        col_indices = safe_concatenate_indices([obj.col for obj in self.groups], empty_ok)
 
         if diagonal:
             x = int(self.row_mapper.index_array.max() + 1)

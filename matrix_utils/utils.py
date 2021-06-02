@@ -38,11 +38,11 @@ def has_relevant_data(
     )
 
 
-def safe_concatenate(arrays: [np.ndarray], empty_ok: bool = False) -> np.ndarray:
+def safe_concatenate_indices(arrays: [np.ndarray], empty_ok: bool = False) -> np.ndarray:
     try:
         return np.hstack(arrays)
     except ValueError:
         if empty_ok:
-            return np.array([])
+            return np.array([], dtype=int)
         else:
             raise AllArraysEmpty
