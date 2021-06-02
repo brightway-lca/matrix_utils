@@ -1,6 +1,6 @@
 from fixtures import basic_mm, diagonal
 from matrix_utils import MappedMatrix
-from matrix_utils.errors import EmptyArray
+from matrix_utils.errors import EmptyArray, AllArraysEmpty
 import bw_processing as bwp
 import numpy as np
 import pytest
@@ -31,11 +31,7 @@ def test_group_filtering():
     assert mm.groups[1].label == "vector2"
 
 
-def test_no_packages():
-    pass
-
-
-def test_no_useful_pacakges():
+def test_no_useful_packages():
     pass
 
 
@@ -129,6 +125,19 @@ def test_indexer_override():
     assert np.allclose(mm.matrix.toarray(), [[2, 10], [0, 6]])
     next(mm)
     assert np.allclose(mm.matrix.toarray(), [[2, 10], [0, 6]])
+
+
+def test_no_packages_error():
+    with pytest.raises(AllArraysEmpty):
+        MappedMatrix(
+            packages=[],
+            matrix="foo",
+        )
+
+
+def test_no_packages_empty_ok():
+    mm = MappedMatrix(packages=[], matrix="foo", empty_ok=True)
+    assert mm.matrix.shape == (0, 0)
 
 
 def test_existing_indexer():

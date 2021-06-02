@@ -1,7 +1,7 @@
 from .array_mapper import ArrayMapper
 from .indexers import RandomIndexer, SequentialIndexer, CombinatorialIndexer
 from .resource_group import ResourceGroup
-from .utils import filter_groups_for_packages
+from .utils import filter_groups_for_packages, safe_concatenate
 from bw_processing import Datapackage
 from scipy import sparse
 from typing import Union, Sequence, Any, Callable
@@ -28,6 +28,7 @@ class MappedMatrix:
         * indexer_override: Parameter for custom indexers. See above.
         * diagonal: If True, only use the `row` indices to build a diagonal matrix.
         * custom_filter: Callable for function to filter data based on `indices` values. See above.
+        * empty_ok: If False, raise `AllArraysEmpty` if the matrix would be empty
 
     """
 
@@ -45,6 +46,7 @@ class MappedMatrix:
         indexer_override: Any = None,
         diagonal: bool = False,
         custom_filter: Union[Callable, None] = None,
+        empty_ok: bool = False,
     ):
         self.seed_override = seed_override
         self.diagonal = diagonal
@@ -68,11 +70,17 @@ class MappedMatrix:
         self.add_indexers(indexer_override, seed_override)
 
         self.row_mapper = row_mapper or ArrayMapper(
-            array=np.hstack([obj.unique_row_indices() for obj in self.groups]),
+            array=safe_concatenate(
+                [obj.unique_row_indices() for obj in self.groups], empty_ok
+            ),
+            empty_ok=empty_ok,
         )
         if not diagonal:
             self.col_mapper = col_mapper or ArrayMapper(
-                array=np.hstack([obj.unique_col_indices() for obj in self.groups]),
+                array=safe_concatenate(
+                    [obj.unique_col_indices() for obj in self.groups], empty_ok
+                ),
+                empty_ok=empty_ok,
             )
 
         self.add_mappers(
