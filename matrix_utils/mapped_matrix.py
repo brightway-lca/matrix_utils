@@ -137,7 +137,6 @@ class MappedMatrix:
         """Add indexers"""
         for package, resources in self.packages.items():
             if hasattr(package, "indexer"):
-                print("Has indexer")
                 for obj in resources:
                     obj.add_indexer(indexer=package.indexer)
             elif indexer_override is not None:
