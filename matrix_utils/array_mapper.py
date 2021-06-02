@@ -22,11 +22,11 @@ class ArrayMapper:
 
     """
 
-    def __init__(self, *, array: np.ndarray, sparse_cutoff: float = 0.1):
+    def __init__(
+        self, *, array: np.ndarray, sparse_cutoff: float = 0.1, empty_ok: bool = False
+    ):
         self._check_input_array(array)
 
-        if array.shape == (0,):
-            raise EmptyArray("Empty array can't be used to map values")
         # Even if already unique, this only adds ~2ms for 100.000 elements
         self.array = np.unique(array)
 
@@ -37,7 +37,13 @@ class ArrayMapper:
         # interval, which can use too much memory in certain cases.
         # self.use_sparse = len(self.keys) / self.keys.max() <= sparse_cutoff:
 
-        self.max_value = int(self.array.max())
+        if array.shape == (0,):
+            if empty_ok:
+                self.max_value = 0
+            else:
+                raise EmptyArray("Empty array can't be used to map values")
+        else:
+            self.max_value = int(self.array.max())
         self.index_array = np.zeros(self.max_value + 1) - 1
         self.index_array[self.array] = np.arange(len(self.array))
 

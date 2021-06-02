@@ -1,5 +1,6 @@
 import pytest
 from matrix_utils.array_mapper import ArrayMapper
+from matrix_utils.errors import EmptyArray
 import numpy as np
 
 
@@ -57,3 +58,14 @@ def test_mapping_out_of_bounds():
     given = np.array([1, 3, 2, 400])
     result = am.map_array(given)
     assert np.allclose(result, [0, 2, 1, -1])
+
+
+def test_empty_array_error():
+    with pytest.raises(EmptyArray):
+        ArrayMapper(array=np.array([], dtype=int))
+
+
+def test_empty_array_ok():
+    am = ArrayMapper(array=np.array([], dtype=int), empty_ok=True)
+    assert am.array.shape == (0,)
+    assert am.index_array.shape == (1,)
