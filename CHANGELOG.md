@@ -1,5 +1,9 @@
 # Changelog
 
+### [0.1.2] - 2021-06-02
+
+* Fix bug in boolean logic order of operations in `has_relevant_data`
+
 ### [0.1.1] - 2021-06-02
 
 * Add `custom_filter` argument to filter out some package data based on indices values.
