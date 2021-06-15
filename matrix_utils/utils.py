@@ -26,19 +26,27 @@ def has_relevant_data(
         res
         for res in package.resources
         if res["group"] == group_label
-        and (res["kind"] == "data" and res["category"] == "vector" and use_vectors)
-        or (
-            res["kind"] == "distributions"
-            and res["category"] == "vector"
-            and use_distributions
+        and (
+            (res["kind"] == "data" and res["category"] == "vector" and use_vectors)
+            or (
+                res["kind"] == "distributions"
+                and res["category"] == "vector"
+                and use_distributions
+            )
+            # Use vectors under Monte Carlo as fallback. Warning: Could be changed in future!
+            or (
+                res["kind"] == "data"
+                and res["category"] == "vector"
+                and use_distributions
+            )
+            or (res["kind"] == "data" and res["category"] == "array" and use_arrays)
         )
-        # Use vectors under Monte Carlo as fallback. Warning: Could be changed in future!
-        or (res["kind"] == "data" and res["category"] == "vector" and use_distributions)
-        or (res["kind"] == "data" and res["category"] == "array" and use_arrays)
     )
 
 
-def safe_concatenate_indices(arrays: [np.ndarray], empty_ok: bool = False) -> np.ndarray:
+def safe_concatenate_indices(
+    arrays: [np.ndarray], empty_ok: bool = False
+) -> np.ndarray:
     try:
         return np.hstack(arrays)
     except ValueError:
