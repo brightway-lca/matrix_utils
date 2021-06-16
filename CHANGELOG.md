@@ -1,6 +1,10 @@
 # Changelog
 
-### [0.1.2] - 2021-06-02
+### [0.1.3] - 2021-06-16
+
+* Allow array data with `use_distrbutions` (instead of raising an error)
+
+### [0.1.2] - 2021-06-15
 
 * Fix bug in boolean logic order of operations in `has_relevant_data`
 
