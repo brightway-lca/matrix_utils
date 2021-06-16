@@ -197,3 +197,21 @@ def test_distributions_seed_override():
 
     assert not np.allclose(results, first)
     assert np.allclose(first, second)
+
+
+def test_distributions_only_array_present():
+    dp = bwp.create_datapackage(sequential=True)
+    dp.add_persistent_array(
+        matrix="foo",
+        name="first",
+        indices_array=np.array([(0, 0), (0, 1)], dtype=bwp.INDICES_DTYPE),
+        data_array=np.array([[1, 2], [3, 4]]),
+    )
+    mm = mu.MappedMatrix(
+        packages=[dp], matrix="foo", use_distributions=True, use_arrays=True,
+    )
+    assert mm.matrix.sum() == 4
+    next(mm)
+    assert mm.matrix.sum() == 6
+    next(mm)
+    assert mm.matrix.sum() == 4

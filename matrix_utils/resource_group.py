@@ -1,6 +1,5 @@
 from .aggregation import aggregate_with_sparse
 from .array_mapper import ArrayMapper
-from .errors import IncompatibleDataTypes
 from .indexers import Indexer, Proxy
 from bw_processing import DatapackageBase
 from stats_arrays import MCRandomNumberGenerator
@@ -65,9 +64,7 @@ class ResourceGroup:
         else:
             self.filter_mask = None
 
-        if self.use_distributions and not self.vector:
-            raise IncompatibleDataTypes
-        elif self.use_distributions:
+        if self.use_distributions and self.vector:
             seed = seed_override or self.package.metadata.get("seed")
             if self.has_distributions:
                 self.rng = MCRandomNumberGenerator(params=self.data, seed=seed)
