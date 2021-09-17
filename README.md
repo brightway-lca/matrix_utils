@@ -1,6 +1,6 @@
 # matrix_utils
 
-Library for building matrices from data packages from [bw_processing](https://github.com/brightway-lca/bw_processing0). Designed for use with the [Brightway life cycle assessment framework](https://brightway.dev/).
+Library for building matrices from data packages from [bw_processing](https://github.com/brightway-lca/bw_processing). Designed for use with the [Brightway life cycle assessment framework](https://brightway.dev/).
 
 ## Table of Contents
 
