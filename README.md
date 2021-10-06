@@ -20,7 +20,7 @@ The [calculation library](https://github.com/brightway-lca/brightway2-calc) of t
 
 ### Backwards compatibility
 
-This library presents a completely different API than the functions previously present in `bw2calc`. Most ideas become easier, or even possible; however, some things are more complicated. In particular, the notion that we have a single array that defines a matrix is no longer true - a matrix can be defined by many input arrays, and they can interact with each other (either adding to or replacing matrix data).
+This library presents a completely different API than the functions previously present in `bw2calc`. Most ideas become easier, or even possible; however, some things are more complicated. In particular, the notion that we have a single array that defines a matrix is no longer true - a matrix can be defined by many input arrays, and they can interact with each other (either adding to existing matrix values or replacing them altogether).
 
 ## Install
 
