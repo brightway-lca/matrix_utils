@@ -1,5 +1,6 @@
-from .errors import EmptyArray
 import numpy as np
+
+from .errors import EmptyArray
 
 
 class ArrayMapper:

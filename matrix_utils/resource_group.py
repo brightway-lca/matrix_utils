@@ -1,10 +1,12 @@
+from typing import Any, Callable, Union
+
+import numpy as np
+from bw_processing import DatapackageBase
+from stats_arrays import MCRandomNumberGenerator
+
 from .aggregation import aggregate_with_sparse
 from .array_mapper import ArrayMapper
 from .indexers import Indexer, Proxy
-from bw_processing import DatapackageBase
-from stats_arrays import MCRandomNumberGenerator
-from typing import Any, Union, Callable
-import numpy as np
 
 
 class FakeRNG:

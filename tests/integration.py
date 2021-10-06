@@ -1,7 +1,8 @@
-from fixtures import overlapping, basic_mm, aggregation
-from matrix_utils import MappedMatrix
-import numpy as np
 import bw_processing as bwp
+import numpy as np
+from fixtures import aggregation, basic_mm, overlapping
+
+from matrix_utils import MappedMatrix
 
 
 def test_basic_matrix_construction():

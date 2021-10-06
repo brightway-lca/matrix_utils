@@ -1,1 +1,1 @@
-from .basic import basic_mm, overlapping, aggregation, diagonal
+from .basic import aggregation, basic_mm, diagonal, overlapping

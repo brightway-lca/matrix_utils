@@ -1,11 +1,13 @@
-from .array_mapper import ArrayMapper
-from .indexers import RandomIndexer, SequentialIndexer, CombinatorialIndexer
-from .resource_group import ResourceGroup
-from .utils import filter_groups_for_packages, safe_concatenate_indices
+from typing import Any, Callable, Sequence, Union
+
+import numpy as np
 from bw_processing import Datapackage
 from scipy import sparse
-from typing import Union, Sequence, Any, Callable
-import numpy as np
+
+from .array_mapper import ArrayMapper
+from .indexers import CombinatorialIndexer, RandomIndexer, SequentialIndexer
+from .resource_group import ResourceGroup
+from .utils import filter_groups_for_packages, safe_concatenate_indices
 
 
 class MappedMatrix:

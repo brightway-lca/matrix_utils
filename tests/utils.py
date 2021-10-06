@@ -1,8 +1,9 @@
-from matrix_utils.errors import AllArraysEmpty
-from matrix_utils.utils import safe_concatenate_indices, has_relevant_data
 import bw_processing as bwp
 import numpy as np
 import pytest
+
+from matrix_utils.errors import AllArraysEmpty
+from matrix_utils.utils import has_relevant_data, safe_concatenate_indices
 
 
 def test_safe_concatenate_indices():

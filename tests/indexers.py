@@ -1,5 +1,7 @@
-from matrix_utils import RandomIndexer, SequentialIndexer, CombinatorialIndexer, Proxy
 import numpy as np
+
+from matrix_utils import (CombinatorialIndexer, Proxy, RandomIndexer,
+                          SequentialIndexer)
 
 
 def test_random():

@@ -1,9 +1,10 @@
-from fixtures import basic_mm, diagonal
-from matrix_utils import MappedMatrix
-from matrix_utils.errors import EmptyArray, AllArraysEmpty
 import bw_processing as bwp
 import numpy as np
 import pytest
+from fixtures import basic_mm, diagonal
+
+from matrix_utils import MappedMatrix
+from matrix_utils.errors import AllArraysEmpty, EmptyArray
 
 
 def test_mappers():

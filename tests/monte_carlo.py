@@ -1,13 +1,10 @@
-from stats_arrays import (
-    UncertaintyBase,
-    NormalUncertainty,
-    TriangularUncertainty,
-    UniformUncertainty,
-)
 import bw_processing as bwp
-import matrix_utils as mu
 import numpy as np
 import pytest
+from stats_arrays import (NormalUncertainty, TriangularUncertainty,
+                          UncertaintyBase, UniformUncertainty)
+
+import matrix_utils as mu
 
 
 def mc_fixture(**kwargs):

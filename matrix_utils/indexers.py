@@ -1,7 +1,7 @@
 from itertools import product
-from numpy.random import Generator, PCG64
-from typing import Union, List
+from typing import List, Union
 
+from numpy.random import PCG64, Generator
 
 # Max signed 32 bit integer, compatible with Windows
 MAX_SIGNED_32BIT_INT = 2147483647

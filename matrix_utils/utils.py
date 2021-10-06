@@ -1,5 +1,6 @@
-from .errors import AllArraysEmpty
 import numpy as np
+
+from .errors import AllArraysEmpty
 
 
 def filter_groups_for_packages(

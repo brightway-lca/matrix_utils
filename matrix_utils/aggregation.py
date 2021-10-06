@@ -1,5 +1,5 @@
-from scipy import sparse
 import numpy as np
+from scipy import sparse
 
 
 def aggregate_with_sparse(

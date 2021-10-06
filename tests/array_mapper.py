@@ -1,7 +1,8 @@
+import numpy as np
 import pytest
+
 from matrix_utils.array_mapper import ArrayMapper
 from matrix_utils.errors import EmptyArray
-import numpy as np
 
 
 def test_initial_setup():
