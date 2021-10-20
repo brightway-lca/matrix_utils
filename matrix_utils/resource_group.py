@@ -54,11 +54,13 @@ class ResourceGroup:
         use_distributions: bool = False,
         seed_override: Union[int, None] = None,
         custom_filter: Union[Callable, None] = None,
+        transpose: bool = False,
     ):
         self.label = group_label
         self.package = package
         self.use_distributions = use_distributions
         self.custom_filter = custom_filter
+        self.transpose = transpose
         self.vector = self.is_vector()
 
         if custom_filter is not None:
@@ -107,7 +109,10 @@ class ResourceGroup:
     @property
     def raw_indices(self):
         """The source data for the indices array."""
-        return self.get_resource_by_suffix("indices")
+        indices = self.get_resource_by_suffix("indices")
+        if self.transpose:
+            indices = indices.astype([('col', np.int32), ('row', np.int32)], copy=False)
+        return indices
 
     @property
     def indices(self):

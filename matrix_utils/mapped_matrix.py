@@ -47,6 +47,7 @@ class MappedMatrix:
         seed_override: Union[int, None] = None,
         indexer_override: Any = None,
         diagonal: bool = False,
+        transpose: bool = False,
         custom_filter: Union[Callable, None] = None,
         empty_ok: bool = False,
     ):
@@ -61,6 +62,7 @@ class MappedMatrix:
                     use_distributions=use_distributions,
                     seed_override=seed_override,
                     custom_filter=custom_filter,
+                    transpose=transpose,
                 )
                 for group_label, filtered_package in lst
             ]

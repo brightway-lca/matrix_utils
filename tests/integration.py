@@ -1,6 +1,6 @@
 import bw_processing as bwp
 import numpy as np
-from fixtures import aggregation, basic_mm, overlapping
+from fixtures import aggregation, basic_mm, overlapping, diagonal
 
 from matrix_utils import MappedMatrix
 
@@ -19,6 +19,32 @@ def test_basic_matrix_construction():
     assert np.allclose(matrix.row, row)
     assert np.allclose(matrix.col, col)
     assert np.allclose(matrix.data, data)
+
+
+def test_matrix_construction_transpose():
+    mm = MappedMatrix(
+        packages=[diagonal()],
+        matrix="foo",
+        use_arrays=False,
+        use_distributions=False,
+        transpose=True,
+    )
+    row = np.array([0, 1, 1, 1])
+    col = np.array([2, 0, 1, 3])
+    data = np.array([4, 1, -2.3, 25])
+    assert mm.matrix.shape == (2, 4)
+    matrix = mm.matrix.tocoo()
+    assert np.allclose(matrix.row, row)
+    assert np.allclose(matrix.col, col)
+    assert np.allclose(matrix.data, data)
+
+    mm = MappedMatrix(
+        packages=[diagonal()],
+        matrix="foo",
+        use_arrays=False,
+        use_distributions=False,
+    )
+    assert mm.matrix.shape == (4, 2)
 
 
 def test_matrix_construction_overlapping_substitution():

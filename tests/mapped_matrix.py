@@ -36,6 +36,18 @@ def test_no_useful_packages():
     pass
 
 
+def test_transpose_matrix():
+    mm = MappedMatrix(
+        packages=[diagonal()],
+        matrix="foo",
+        use_arrays=False,
+        use_distributions=False,
+        transpose=True,
+    )
+    assert mm.matrix.shape == (2, 4)
+    assert np.allclose(mm.matrix.data, [4, 1, -2.3, 25])
+
+
 def test_diagonal_matrix():
     mm = MappedMatrix(
         packages=[diagonal()],
