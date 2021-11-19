@@ -65,7 +65,7 @@ def create_dp(vector, array, distributions):
             indices_array=np.array(
                 [(1, 0), (2, 1), (5, 1), (8, 1)], dtype=bwp.INDICES_DTYPE
             ),
-            data_array=np.array([1, 2.3, 4, 25]),
+            data_array=np.array([[1, 2.3, 4, 25]]).T,
         )
     return dp
 
