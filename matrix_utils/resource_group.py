@@ -17,6 +17,13 @@ class FakeRNG:
         return self.array
 
 
+def mask_array(array, mask=None):
+    if mask is not None:
+        return array[mask]
+    else:
+        return array
+
+
 class ResourceGroup:
     """A class that handles a resource group - a collection of files in data package which define one matrix. A resource group can contain the following:
 
@@ -64,19 +71,19 @@ class ResourceGroup:
         self.vector = self.is_vector()
 
         if custom_filter is not None:
-            self.filter_mask = custom_filter(self.raw_indices)
+            self.custom_filter_mask = custom_filter(self.get_indices_data())
         else:
-            self.filter_mask = None
+            self.custom_filter_mask = None
 
         if self.use_distributions and self.vector:
             seed = seed_override or self.package.metadata.get("seed")
             if self.has_distributions:
-                self.rng = MCRandomNumberGenerator(params=self.data, seed=seed)
+                self.rng = MCRandomNumberGenerator(params=self.data_original, seed=seed)
             else:
-                self.rng = FakeRNG(self.data)
+                self.rng = FakeRNG(self.data_original)
 
         self.aggregate = self.package.metadata["sum_intra_duplicates"]
-        self.empty = self.indices.shape == (0,)
+        self.empty = self.get_indices_data().shape == (0,)
 
     @property
     def has_distributions(self):
@@ -87,40 +94,23 @@ class ResourceGroup:
             return False
 
     @property
-    def data(self):
+    def data_original(self):
         if self.use_distributions and self.has_distributions:
             return self.get_resource_by_suffix("distributions")
         else:
             return self.get_resource_by_suffix("data")
 
     @property
-    def raw_flip(self):
-        """The source data for the flip array."""
-        return self.get_resource_by_suffix("flip")
-
-    @property
     def flip(self):
-        """The flip array, with the custom filter mask applied if necessary."""
-        if self.filter_mask is None:
-            return self.raw_flip
-        else:
-            return self.raw_flip[self.filter_mask]
+        """The flip array, with all masks applied (if necessary)."""
+        return self.apply_masks(self.get_resource_by_suffix("flip"))
 
-    @property
-    def raw_indices(self):
+    def get_indices_data(self):
         """The source data for the indices array."""
         indices = self.get_resource_by_suffix("indices")
         if self.transpose:
             indices = indices.astype([('col', np.int32), ('row', np.int32)], copy=False)
         return indices
-
-    @property
-    def indices(self):
-        """The indices array, with the custom filter mask applied if necessary."""
-        if self.filter_mask is None:
-            return self.raw_indices
-        else:
-            return self.raw_indices[self.filter_mask]
 
     def get_resource_by_suffix(self, suffix: str) -> Any:
         return self.package.get_resource(self.label + "." + suffix)[0]
@@ -130,12 +120,17 @@ class ResourceGroup:
         metadata = self.package.get_resource(self.label + ".data")[1]
         return metadata.get("category") == "vector"
 
+    def is_array(self) -> bool:
+        """Determine if this is a vector or array resource"""
+        metadata = self.package.get_resource(self.label + ".data")[1]
+        return metadata.get("category") == "array"
+
     @property
     def ncols(self):
         if self.vector:
             return None
         else:
-            return self.data.shape[1]
+            return self.data_original.shape[1]
 
     def add_mapper(self, axis: int, mapper: ArrayMapper):
         if axis == 0:
@@ -153,56 +148,58 @@ class ResourceGroup:
 
     def map_indices(self, *, diagonal=False):
         if self.empty:
-            self.row = np.array([])
-            self.col = np.array([])
+            self.row_matrix = self.row_masked = np.array([], dtype=np.int64)
+            self.col_matrix = self.col_masked = np.array([], dtype=np.int64)
             return
 
-        self.row_original = self.row_mapper.map_array(self.indices["row"])
+        indices = self.get_indices_data()
+
+        self.row_original = self.row_mapper.map_array(indices["row"])
         if diagonal:
             self.col_original = self.row_original
         else:
-            self.col_original = self.col_mapper.map_array(self.indices["col"])
+            self.col_original = self.col_mapper.map_array(indices["col"])
 
-        self.mask = self.build_mask(self.row_original, self.col_original)
+        self.unmapped_mask = self.build_mask(mask_array(self.row_original, self.custom_filter_mask), mask_array(self.col_original, self.custom_filter_mask))
+
+        self.row_masked = self.apply_masks(self.row_original)
+        self.col_masked = self.apply_masks(self.col_original)
 
         if self.aggregate:
-            self.count = max(self.row_original.max(), self.col_original.max()) + 1
-            if self.mask is not None:
-                self.row, self.col, _ = aggregate_with_sparse(
-                    self.row_original[self.mask],
-                    self.col_original[self.mask],
-                    np.zeros(self.mask.sum()),
-                    self.count,
-                )
-            else:
-                self.row, self.col, _ = aggregate_with_sparse(
-                    self.row_original,
-                    self.col_original,
-                    np.zeros(self.row_original.shape),
-                    self.count,
-                )
-
+            self.count = max(self.row_masked.max(), self.col_masked.max()) + 1
+            self.row_matrix, self.col_matrix, _ = aggregate_with_sparse(
+                self.row_masked,
+                self.col_masked,
+                np.zeros(self.row_masked.shape),
+                self.count,
+            )
         else:
-            if self.mask is not None:
-                self.row = self.row_original[self.mask]
-                self.col = self.col_original[self.mask]
-            else:
-                self.row = self.row_original
-                self.col = self.col_original
+            self.row_matrix = self.row_masked
+            self.col_matrix = self.col_masked
 
-    def unique_row_indices(self):
+    def unique_row_indices_for_mapping(self):
         """Return array of unique indices that respect aggregation policy"""
-        return np.unique(self.indices["row"])
+        return np.unique(mask_array(self.get_indices_data()["row"], self.custom_filter_mask))
 
-    def unique_col_indices(self):
+    def unique_col_indices_for_mapping(self):
         """Return array of unique indices that respect aggregation policy"""
-        return np.unique(self.indices["col"])
+        return np.unique(mask_array(self.get_indices_data()["col"], self.custom_filter_mask))
 
     def add_indexer(self, indexer: Indexer):
         self.indexer = indexer
 
     def add_combinatorial_indexer(self, indexer: Indexer, offset: int):
         self.indexer = Proxy(indexer, offset)
+
+    def apply_masks(self, array):
+        """Apply both ``custom_filter_mask`` (if present) and ``unmapped_mask``."""
+        if self.custom_filter_mask is not None:
+            array = array[self.custom_filter_mask]
+
+        if self.unmapped_mask is not None:
+            array = array[self.unmapped_mask]
+
+        return array
 
     def calculate(self, vector: np.ndarray = None):
         """Generate row and column indices and a data vector. If ``.data`` is an iterator, draw the next value. If ``.data`` is an array, use the column given by ``.indexer``.
@@ -212,7 +209,7 @@ class ResourceGroup:
         """
         if self.empty:
             self.current_data = np.array([])
-            return self.row, self.col, self.current_data
+            return self.row_matrix, self.col_matrix, self.current_data
 
         if vector is not None:
             data = vector
@@ -221,17 +218,18 @@ class ResourceGroup:
                 data = next(self.rng)
             else:
                 try:
-                    data = next(self.data)
+                    data = next(self.data_original)
                 except TypeError:
-                    data = self.data
+                    data = self.data_original
         else:
-            data = self.data[:, self.indexer.index % self.ncols]
+            data = self.data_original[:, self.indexer.index % self.ncols]
 
+        # `data` is now in the original state before **any** masking`
         # Copy to avoid modifying original data
         data = data.copy()
 
-        if self.filter_mask is not None:
-            data = data[self.filter_mask]
+        # apply bith custom filter mask and mapping mask
+        data = self.apply_masks(data)
 
         try:
             data[self.flip] *= -1
@@ -240,19 +238,14 @@ class ResourceGroup:
             pass
 
         # Second copy because we want to store the data before aggregation
-        self.current_data = data.copy()
+        self.data_current = data.copy()
 
         if self.aggregate:
-            if self.mask is not None:
-                return aggregate_with_sparse(
-                    self.row_original[self.mask],
-                    self.col_original[self.mask],
-                    data[self.mask],
-                    self.count,
-                )
-            else:
-                return aggregate_with_sparse(
-                    self.row_original, self.col_original, data, self.count
-                )
+            return aggregate_with_sparse(
+                self.row_masked,
+                self.col_masked,
+                data,
+                self.count,
+            )
         else:
-            return self.row, self.col, data[self.mask]
+            return self.row_matrix, self.col_matrix, data

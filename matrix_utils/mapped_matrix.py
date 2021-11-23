@@ -1,7 +1,7 @@
-from typing import Any, Callable, Sequence, Union
+from typing import Any, Callable, Sequence, Optional
 
 import numpy as np
-from bw_processing import Datapackage
+from bw_processing import Datapackage, UNCERTAINTY_DTYPE, INDICES_DTYPE
 from scipy import sparse
 
 from .array_mapper import ArrayMapper
@@ -42,13 +42,13 @@ class MappedMatrix:
         use_vectors: bool = True,
         use_arrays: bool = True,
         use_distributions: bool = False,
-        row_mapper: Union[ArrayMapper, None] = None,
-        col_mapper: Union[ArrayMapper, None] = None,
-        seed_override: Union[int, None] = None,
+        row_mapper: Optional[ArrayMapper] = None,
+        col_mapper: Optional[ArrayMapper] = None,
+        seed_override: Optional[int] = None,
         indexer_override: Any = None,
         diagonal: bool = False,
         transpose: bool = False,
-        custom_filter: Union[Callable, None] = None,
+        custom_filter: Optional[Callable] = None,
         empty_ok: bool = False,
     ):
         self.seed_override = seed_override
@@ -75,14 +75,14 @@ class MappedMatrix:
 
         self.row_mapper = row_mapper or ArrayMapper(
             array=safe_concatenate_indices(
-                [obj.unique_row_indices() for obj in self.groups], empty_ok
+                [obj.unique_row_indices_for_mapping() for obj in self.groups], empty_ok
             ),
             empty_ok=empty_ok,
         )
         if not diagonal:
             self.col_mapper = col_mapper or ArrayMapper(
                 array=safe_concatenate_indices(
-                    [obj.unique_col_indices() for obj in self.groups], empty_ok
+                    [obj.unique_col_indices_for_mapping() for obj in self.groups], empty_ok
                 ),
                 empty_ok=empty_ok,
             )
@@ -96,8 +96,8 @@ class MappedMatrix:
             self.add_mappers(axis=1, mapper=self.col_mapper)
         self.map_indices()
 
-        row_indices = safe_concatenate_indices([obj.row for obj in self.groups], empty_ok)
-        col_indices = safe_concatenate_indices([obj.col for obj in self.groups], empty_ok)
+        row_indices = safe_concatenate_indices([obj.row_matrix for obj in self.groups], empty_ok)
+        col_indices = safe_concatenate_indices([obj.col_matrix for obj in self.groups], empty_ok)
 
         if diagonal:
             x = int(self.row_mapper.index_array.max() + 1)
@@ -145,7 +145,7 @@ class MappedMatrix:
         self.iterate_indexers()
         self.rebuild_matrix()
 
-    def add_indexers(self, indexer_override: Any, seed_override: Union[int, None]):
+    def add_indexers(self, indexer_override: Any, seed_override: Optional[int]):
         """Add indexers"""
         for package, resources in self.packages.items():
             if hasattr(package, "indexer"):
