@@ -171,3 +171,79 @@ class MappedMatrix:
                 )
                 for obj in resources:
                     obj.add_indexer(indexer=package.indexer)
+
+    @property
+    def input_data_vector(self):
+        for group in self.groups:
+            return np.hstack(group.current_data)
+
+    @property
+    def input_row_col_indices(self):
+        rows, cols = [], []
+
+        for group in self.groups:
+            rows.append(group.row_masked)
+            cols.append(group.col_masked)
+
+        rows, cols = np.hstack(rows), np.hstack(cols)
+
+        array = np.empty(shape=(len(rows),), dtype=INDICES_DTYPE)
+        array['rows'] = rows
+        array['cols'] = cols
+        return array
+
+    @property
+    def input_indexer_vector(self):
+        index_values = []
+
+        for package in self.packages:
+            value = package.indexer.index
+            if isinstance(value, int):
+                index_values.append(value)
+            elif isinstance(value, tuple):
+                index_values.extend(list(value))
+            else:
+                raise ValueError(f"Can't understand indexer value {value} in package {package}")
+        return np.array(index_values)
+
+    def _construct_distributions_array(self, given):
+        FIELDS = ['scale', 'shape', 'minimum', 'maximum']
+
+        array = np.zeros(len(given), dtype=UNCERTAINTY_DTYPE)
+        for field in FIELDS:
+            array[field] = np.NaN
+        array['loc'] = given
+        return array
+
+    @property
+    def input_uncertainties(self, number_samples: Optional[int] = None):
+        """Return the stacked uncertainty arrays of all resources groups.
+
+        Note that this data is masked with both the custom filter (if present) and the mapping mask!
+
+        If the resource group has a distributions array, then this is returned. Otherwise, if the data is static, a distributions array with uncertainty type 0 (undefined uncertainty) is constructed. If the data is an array, an estimate of the mean and standard deviation are given in the ``loc`` and ``scale`` columns. This estimate uses ``number_samples`` columns, or all columns if ``number_samples`` is ``None``.
+
+        If the data comes from an interface,  a distributions array with uncertainty type 0. Regardless if whether it is a vector or an array interface, the current data vector is used, and no estimate of uncertainty is made.
+
+        Raises a ``TypeError`` if distributions arrays are present but don't follow the dtype of ``bw_processing.UNCERTAINTY_DTYPE``."""
+        arrays = []
+
+        for group in self.groups:
+            if group.has_distributions:
+                if group.data_original.dtype != UNCERTAINTY_DTYPE:
+                    raise TypeError(f"Distributions datatype must be `bw_processing.UNCERTAINTY_DTYPE`, but was {data.dtype}")
+                arrays.append(group.apply_masks(group.data_original))
+            elif group.is_array():
+                data = group.data_original
+                if number_samples is not None:
+                    data = data[:, :number_samples]
+
+                mean,  = np.mean(data, axis=1)
+                array = self._construct_distributions_array(group.data_current)
+                array['loc'] = np.mean(data, axis=1)
+                array['scale'] = np.std(data, axis=1)
+                arrays.append(array)
+            else:
+                arrays.append(self._construct_distributions_array(group.current_data))
+
+        return np.hstack(arrays)

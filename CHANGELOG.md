@@ -2,6 +2,17 @@
 
 ## [0.2] - DEV
 
+### Added attributes in `MappedMatrix` for sensitivity analysis
+
+Added the following attributes to `MappedMatrix`:
+
+* `input_data_vector`: The stacked data vector from all resource groups.
+* `input_row_col_indices`: The stacked indices structured array (with columns `row` and `col`) from all resource groups.
+* `input_indexer_vector`: A vector of values from the resource group indexers. This array flattens value from combinatorial indexers, be careful that you understand the values.
+* `input_uncertainties`: The stacked distributions structured array (dtype `bw_processing.UNCERTAINTY_DTYPE`) from all resource groups. See the documentation for how this works with arrays and interfaces.
+
+Note that these values are before any aggregation policies are applied, i.e. values to be placed in the same matrix cell are not summed or overwritten.
+
 ### Changed attributes in `ResourceGroup`
 
 Rewrote basic functionality of `ResourceGroup` to make it clear what data was masked and was wasn't. Removed `raw_indices`, `indices`, `raw_flip`, `row`, `col`, and `data`. We now use a uniform naming convention for `data`, `row`, and `col`:
