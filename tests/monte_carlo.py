@@ -1,8 +1,12 @@
 import bw_processing as bwp
 import numpy as np
 import pytest
-from stats_arrays import (NormalUncertainty, TriangularUncertainty,
-                          UncertaintyBase, UniformUncertainty)
+from stats_arrays import (
+    NormalUncertainty,
+    TriangularUncertainty,
+    UncertaintyBase,
+    UniformUncertainty,
+)
 
 import matrix_utils as mu
 
@@ -111,7 +115,7 @@ def test_distributions_without_uncertainties():
     col = mm.col_mapper.to_dict()
 
     assert 50 <= np.mean(results[row[10], col[20], :]) <= 150
-    assert 9 <= np.mean(results[row[11], col[21], :]) <= 14
+    assert 8 <= np.mean(results[row[11], col[21], :]) <= 14
 
     assert np.allclose(results[row[10], col[10], :], 11)
     assert np.allclose(results[row[18], col[7], :], 125)
@@ -155,6 +159,37 @@ def test_distributions_seed_in_datapackage():
         other[:, :, i] = mm.matrix.toarray()
 
     assert np.allclose(results, other)
+
+
+def test_distributions_reproducible():
+    dp = mc_fixture(seed=123)
+    mm = mu.MappedMatrix(packages=[dp], matrix="foo", use_distributions=True)
+
+    results = np.zeros((2, 2, 10))
+    results[:, :, 0] = mm.matrix.toarray()
+
+    for i in range(1, 10):
+        next(mm)
+        results[:, :, i] = mm.matrix.toarray()
+
+    given = results.sum(axis=0).sum(axis=0).ravel()
+    print(given.shape)
+    print(given)
+    expected = np.array(
+        [
+            21.06909828,
+            29.21713645,
+            37.0735732,
+            32.0954309,
+            22.10498503,
+            30.75377088,
+            24.87344966,
+            31.2384641,
+            27.44208816,
+            27.45639759,
+        ]
+    )
+    assert np.allclose(expected, given)
 
 
 def test_distributions_seed_override():
@@ -205,7 +240,10 @@ def test_distributions_only_array_present():
         data_array=np.array([[1, 2], [3, 4]]),
     )
     mm = mu.MappedMatrix(
-        packages=[dp], matrix="foo", use_distributions=True, use_arrays=True,
+        packages=[dp],
+        matrix="foo",
+        use_distributions=True,
+        use_arrays=True,
     )
     assert mm.matrix.sum() == 4
     next(mm)
