@@ -17,11 +17,15 @@ Note that these values are before any aggregation policies are applied, i.e. val
 
 Rewrote basic functionality of `ResourceGroup` to make it clear what data was masked and was wasn't. Removed `raw_indices`, `indices`, `raw_flip`, `row`, `col`, and `data`. We now use a uniform naming convention for `data`, `row`, and `col`:
 
-* `X_original`: The data as it is present in the datapackage. The only except are indices, which might be transposed (but not masked).
-* `X_masked`: The data after the custom filter and mapping mask have been applied.
-* `X_matrix`: Row and column indices (but not data) for insertion into the matrix. These indices are after aggregation within the resource group (if any).
+* `data_original`: The data as it is present in the datapackage, before masking.
+* `data_current`: The data sample used (before aggregation) to build the matrix. It is both masked and flipped.
+* `row|col_mapped`: Mapped row and column indices. Has the same length as the datapackage resource, but uses `-1` for values which weren't mapped.
+* `row|col_masked`: The data after the custom filter and mapping mask have been applied.
+* `row|col_matrix`: Row and column indices (but not data) for insertion into the matrix. These indices are after aggregation within the resource group (if any).
 
-`flip` is always masked. `current_data` is now `data_current` (to be consistent with the naming convention), and is both masked and flipped, but not aggregated. `indices` are removed, use `get_indices_data()`.
+`flip` is always masked. `current_data` is now `data_current` (to be consistent with the naming convention), and is both masked and flipped, but not aggregated.
+
+`.indices` are removed, use `.get_indices_data()`.
 
 ### [0.1.4] - 2021-10-20
 

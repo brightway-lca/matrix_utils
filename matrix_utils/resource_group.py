@@ -35,19 +35,19 @@ class ResourceGroup:
 
     After instantiation, the ``MappedMatrix`` class will add an indexer (an instance of ``matrix_utils.indexers.Indexer``), using either ``add_indexer`` or ``add_combinatorial_indexer``. It will also add one or two array mappers, using ``add_mapper``. Only one mapper is needed if the matrix is diagonal.
 
-    One easy source of confusion is the difference between ``.row_original`` and ``.row``. Both of these are one-dimensional vectors which have matrix row indices (i.e. they have already been mapped). ``.row_original`` are the values as given in the data package, whereas ``.row`` are the values actually used in matrix data insertion (and the same for column indices).There are two possible modifications that can be applied from ``.row_original`` to ``.row``; first, we can have internal aggregation, which will shrink the size of the row or column indices, as duplicate elements are eliminated. Second, if the array mapper was already instantiated, we might need to delete some elements from the row or column indices, as these values are not used in this calculation. For example, in life cycle assessment, LCIA method implementations often contain characterization factors for flows not present in the biosphere (as they were not used by an of the activities). In this case, we would need to eliminate these factors, as our characterization matrix must match exactly to the biosphere matrix already built.
+    One easy source of confusion is the difference between ``.row_mapped`` and ``.row``. Both of these are one-dimensional vectors which have matrix row indices (i.e. they have already been mapped). ``.row_mapped`` are the values as given in the data package, whereas ``.row`` are the values actually used in matrix data insertion (and the same for column indices).There are two possible modifications that can be applied from ``.row_mapped`` to ``.row``; first, we can have internal aggregation, which will shrink the size of the row or column indices, as duplicate elements are eliminated. Second, if the array mapper was already instantiated, we might need to delete some elements from the row or column indices, as these values are not used in this calculation. For example, in life cycle assessment, LCIA method implementations often contain characterization factors for flows not present in the biosphere (as they were not used by an of the activities). In this case, we would need to eliminate these factors, as our characterization matrix must match exactly to the biosphere matrix already built.
 
     Here is an example for row indices:
 
     .. code-block:: python
 
         row_input_indices = [0, 17, 99, 42, 17]
-        row_original = [0, 1, -1, 2, 1]
+        row_mapped = [0, 1, -1, 2, 1]
         after_aggregation = [0, 1, -1, 2]  # -1 is missing data point
         after_masking = [0, 1, 2]
         row = [0, 1, 2]
 
-    Any data coming into this class, with through instantiation or via method calls such as ``.calculate``, should follow the length and order of ``.row_original``.
+    Any data coming into this class, with through instantiation or via method calls such as ``.calculate``, should follow the length and order of the original datapackage data (use ``get_indices_data()`` to get the original indices.
 
     The current data, as entered into the matrix, is given by ``.current_data``.
 
@@ -109,7 +109,7 @@ class ResourceGroup:
         """The source data for the indices array."""
         indices = self.get_resource_by_suffix("indices")
         if self.transpose:
-            indices = indices.astype([('col', np.int32), ('row', np.int32)], copy=False)
+            indices = indices.astype([("col", np.int32), ("row", np.int32)], copy=False)
         return indices
 
     def get_resource_by_suffix(self, suffix: str) -> Any:
@@ -154,16 +154,19 @@ class ResourceGroup:
 
         indices = self.get_indices_data()
 
-        self.row_original = self.row_mapper.map_array(indices["row"])
+        self.row_mapped = self.row_mapper.map_array(indices["row"])
         if diagonal:
-            self.col_original = self.row_original
+            self.col_mapped = self.row_mapped
         else:
-            self.col_original = self.col_mapper.map_array(indices["col"])
+            self.col_mapped = self.col_mapper.map_array(indices["col"])
 
-        self.unmapped_mask = self.build_mask(mask_array(self.row_original, self.custom_filter_mask), mask_array(self.col_original, self.custom_filter_mask))
+        self.unmapped_mask = self.build_mask(
+            mask_array(self.row_mapped, self.custom_filter_mask),
+            mask_array(self.col_mapped, self.custom_filter_mask),
+        )
 
-        self.row_masked = self.apply_masks(self.row_original)
-        self.col_masked = self.apply_masks(self.col_original)
+        self.row_masked = self.apply_masks(self.row_mapped)
+        self.col_masked = self.apply_masks(self.col_mapped)
 
         if self.aggregate:
             self.count = max(self.row_masked.max(), self.col_masked.max()) + 1
