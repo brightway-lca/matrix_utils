@@ -182,11 +182,15 @@ class ResourceGroup:
 
     def unique_row_indices_for_mapping(self):
         """Return array of unique indices that respect aggregation policy"""
-        return np.unique(mask_array(self.get_indices_data()["row"], self.custom_filter_mask))
+        return np.unique(
+            mask_array(self.get_indices_data()["row"], self.custom_filter_mask)
+        )
 
     def unique_col_indices_for_mapping(self):
         """Return array of unique indices that respect aggregation policy"""
-        return np.unique(mask_array(self.get_indices_data()["col"], self.custom_filter_mask))
+        return np.unique(
+            mask_array(self.get_indices_data()["col"], self.custom_filter_mask)
+        )
 
     def add_indexer(self, indexer: Indexer):
         self.indexer = indexer

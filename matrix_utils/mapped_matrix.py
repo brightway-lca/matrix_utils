@@ -30,6 +30,7 @@ class MappedMatrix:
         * seed_override: Optional integer. Overrides the RNG seed given in the datapackage, if any.
         * indexer_override: Parameter for custom indexers. See above.
         * diagonal: If True, only use the `row` indices to build a diagonal matrix.
+        * transpose: Transpose row and column indices. Happens before any processing, so filters and mappers should refer to the transposed dimensions.
         * custom_filter: Callable for function to filter data based on `indices` values. See above.
         * empty_ok: If False, raise `AllArraysEmpty` if the matrix would be empty
 
@@ -74,7 +75,11 @@ class MappedMatrix:
 
         for package in self.packages:
             if package.dehydrated_interfaces():
-                raise EmptyInterface("Dehydrated interfaces {} in package {} need to be rehydrated to be used in matrix calculations".format(package.dehydrated_interfaces(), package))
+                raise EmptyInterface(
+                    "Dehydrated interfaces {} in package {} need to be rehydrated to be used in matrix calculations".format(
+                        package.dehydrated_interfaces(), package
+                    )
+                )
 
         self.groups = tuple([obj for lst in self.packages.values() for obj in lst])
         self.add_indexers(indexer_override, seed_override)
@@ -88,7 +93,8 @@ class MappedMatrix:
         if not diagonal:
             self.col_mapper = col_mapper or ArrayMapper(
                 array=safe_concatenate_indices(
-                    [obj.unique_col_indices_for_mapping() for obj in self.groups], empty_ok
+                    [obj.unique_col_indices_for_mapping() for obj in self.groups],
+                    empty_ok,
                 ),
                 empty_ok=empty_ok,
             )
@@ -102,8 +108,12 @@ class MappedMatrix:
             self.add_mappers(axis=1, mapper=self.col_mapper)
         self.map_indices()
 
-        row_indices = safe_concatenate_indices([obj.row_matrix for obj in self.groups], empty_ok)
-        col_indices = safe_concatenate_indices([obj.col_matrix for obj in self.groups], empty_ok)
+        row_indices = safe_concatenate_indices(
+            [obj.row_matrix for obj in self.groups], empty_ok
+        )
+        col_indices = safe_concatenate_indices(
+            [obj.col_matrix for obj in self.groups], empty_ok
+        )
 
         if diagonal:
             x = int(self.row_mapper.index_array.max() + 1)
@@ -194,8 +204,8 @@ class MappedMatrix:
         rows, cols = np.hstack(rows), np.hstack(cols)
 
         array = np.empty(shape=(len(rows),), dtype=INDICES_DTYPE)
-        array['rows'] = rows
-        array['cols'] = cols
+        array["rows"] = rows
+        array["cols"] = cols
         return array
 
     @property
@@ -209,16 +219,18 @@ class MappedMatrix:
             elif isinstance(value, tuple):
                 index_values.extend(list(value))
             else:
-                raise ValueError(f"Can't understand indexer value {value} in package {package}")
+                raise ValueError(
+                    f"Can't understand indexer value {value} in package {package}"
+                )
         return np.array(index_values)
 
     def _construct_distributions_array(self, given):
-        FIELDS = ['scale', 'shape', 'minimum', 'maximum']
+        FIELDS = ["scale", "shape", "minimum", "maximum"]
 
         array = np.zeros(len(given), dtype=UNCERTAINTY_DTYPE)
         for field in FIELDS:
             array[field] = np.NaN
-        array['loc'] = given
+        array["loc"] = given
         return array
 
     @property
@@ -237,17 +249,19 @@ class MappedMatrix:
         for group in self.groups:
             if group.has_distributions:
                 if group.data_original.dtype != UNCERTAINTY_DTYPE:
-                    raise TypeError(f"Distributions datatype must be `bw_processing.UNCERTAINTY_DTYPE`, but was {data.dtype}")
+                    raise TypeError(
+                        f"Distributions datatype must be `bw_processing.UNCERTAINTY_DTYPE`, but was {data.dtype}"
+                    )
                 arrays.append(group.apply_masks(group.data_original))
             elif group.is_array():
                 data = group.data_original
                 if number_samples is not None:
                     data = data[:, :number_samples]
 
-                mean,  = np.mean(data, axis=1)
+                (mean,) = np.mean(data, axis=1)
                 array = self._construct_distributions_array(group.data_current)
-                array['loc'] = np.mean(data, axis=1)
-                array['scale'] = np.std(data, axis=1)
+                array["loc"] = np.mean(data, axis=1)
+                array["scale"] = np.std(data, axis=1)
                 arrays.append(array)
             else:
                 arrays.append(self._construct_distributions_array(group.current_data))
