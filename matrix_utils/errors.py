@@ -20,3 +20,9 @@ class EmptyArray(MatrixUtilsError):
     """Empty array can't be used"""
 
     pass
+
+
+class EmptyInterface(MatrixUtilsError):
+    """Calculation attempted with dehydrated interface."""
+
+    pass

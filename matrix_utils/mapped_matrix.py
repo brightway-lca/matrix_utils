@@ -8,6 +8,7 @@ from .array_mapper import ArrayMapper
 from .indexers import CombinatorialIndexer, RandomIndexer, SequentialIndexer
 from .resource_group import ResourceGroup
 from .utils import filter_groups_for_packages, safe_concatenate_indices
+from .errors import EmptyInterface
 
 
 class MappedMatrix:
@@ -70,6 +71,11 @@ class MappedMatrix:
                 packages, matrix, use_vectors, use_arrays, use_distributions
             ).items()
         }
+
+        for package in self.packages:
+            if package.dehydrated_interfaces():
+                raise EmptyInterface("Dehydrated interfaces {} in package {} need to be rehydrated to be used in matrix calculations".format(package.dehydrated_interfaces(), package))
+
         self.groups = tuple([obj for lst in self.packages.values() for obj in lst])
         self.add_indexers(indexer_override, seed_override)
 
