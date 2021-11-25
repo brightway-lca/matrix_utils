@@ -85,6 +85,9 @@ class ResourceGroup:
         self.aggregate = self.package.metadata["sum_intra_duplicates"]
         self.empty = self.get_indices_data().shape == (0,)
 
+    def __str__(self):
+        return "ResourceGroup {}\n\tVector: {}\n\tDistributions: {}\n\tTranspose: {}\n\tSeed: {}\n\tCustom filter: {}".format(self.label, self.vector, self.use_distributions, self.transpose, self.seed, bool(self.custom_filter))
+
     @property
     def has_distributions(self):
         try:
