@@ -124,8 +124,13 @@ class ResourceGroup:
 
     def is_array(self) -> bool:
         """Determine if this is a vector or array resource"""
-        metadata = self.package.get_resource(self.label + ".data")[1]
-        return metadata.get("category") == "array"
+        return not self.is_vector()
+
+    def is_interface(self) -> bool:
+        """Determine if data is an interface"""
+        return (
+            self.package.get_resource(self.label + ".data")[1]["profile"] == "interface"
+        )
 
     @property
     def ncols(self):
