@@ -67,16 +67,14 @@ A `bw_processing` data package is essentially a metadata file and a bag of data 
 
 The `ResourceGroup` class provides a single interface to these data files and their metadata. `ResourceGroup` instances are created automatically by `MappedMatrix`, and available via `MappedMatrix.groups`. The [source code]() is pretty readable, and in general you probably don't need to worry about this low-level class, but the following could be useful:
 
-* `ResourceGroup.data`: The Numpy data vector or array, or the data interface. This is the raw input data, duplicate elements are not aggregated (if applicable).
-* `ResourceGroup.sample`: Numpy vector of the data inserted into the matrix, after aggregation (if applicable) and sign flipping.
-* `ResourceGroup.indices`: The Numpy structured data array with **unmapped** indices (i.e. data source ids given in the data package). Has `row` and `col` columns.
-* `ResourceGroup.row`: Numpy vector of matrix row indices.
-* `ResourceGroup.col`: Numpy vector of matrix col indices.
-* `ResourceGroup.row_original`: Numpy vector of matrix row indices before masking and summing duplicate entries.
-* `ResourceGroup.col_original`: Numpy vector of matrix column indices before masking and summing duplicate entries.
+* `ResourceGroup.data_original`: The data as it is present in the datapackage, before masking (i.e. the Numpy data vector or array, or the data interface). This is the raw input data, duplicate elements are not aggregated (if applicable).
+* `ResourceGroup.data_current`: The data sample used (before aggregation) to build the matrix. It is both masked and flipped.
+* `ResourceGroup.row|col_mapped`: Mapped row and column indices. Has the same length as the datapackage resource, but uses `-1` for values which weren't mapped.
+* `ResourceGroup.row|col_masked`: The data after the custom filter and mapping mask have been applied.
+* `rResourceGroup.row|col_matrix`: Row and column indices (but not data) for insertion into the matrix. These indices are after aggregation within the resource group (if any).
 * `ResourceGroup.calculate(vector=None)`: Function to recalculate matrix row, column, and data vectors. Uses the current state of the indexers, but re-draws values from data iterators. If `vector` is given, use this instead of the given data source.
 * `ResourceGroup.indexer`: The instance of the `Indexer` class applicable for this `ResourceGroup`. Only used for data arrays.
-* `ResourceGroup.ncols`: The integer number of columns in a data array. Returns `None` is a data vector is present.
+* `ResourceGroup.ncols`: The integer number of columns in a data array. Returns `None` if a data vector is present.
 
 ## Contributing
 
