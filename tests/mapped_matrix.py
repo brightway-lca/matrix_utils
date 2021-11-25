@@ -377,3 +377,167 @@ def test_matrix_building_multiple_dps_no_distributions_yes_arrays_sum_both(sensi
         ])
         assert np.allclose(mm.matrix.toarray(), expected)
         next(mm)
+
+
+def test_input_data_vector(sensitivity_dps):
+    indices = [
+        191664963,
+        1662057957,
+        1405681631,
+    ]
+    mm = MappedMatrix(
+        packages=sensitivity_dps,
+        matrix="matrix",
+        use_vectors=True,
+        use_arrays=True,
+        use_distributions=False,
+    )
+
+    for index in indices:
+        expected = np.array(
+            [
+                index % 100,
+                index % 100,
+                index % 100,
+                -(index % 4 + 7),
+                (index % 4 + 8),
+                1,
+                2,
+                -1,
+                -3,
+                1,
+                2,
+                3,
+            ]
+        )
+        assert np.allclose(mm.input_data_vector(), expected)
+        next(mm)
+
+
+def test_input_row_col_indices(sensitivity_dps):
+    mm = MappedMatrix(
+        packages=sensitivity_dps,
+        matrix="matrix",
+        use_vectors=True,
+        use_arrays=True,
+        use_distributions=False,
+    )
+
+    expected = np.array(
+        [
+            (0, 0),
+            (1, 2),
+            (2, 1),
+            (0, 0),
+            (1, 1),
+            (2, 0),
+            (2, 1),
+            (2, 1),
+            (2, 2),
+            (0, 2),
+            (2, 0),
+            (2, 2),
+        ],
+        dtype=bwp.INDICES_DTYPE,
+    )
+    assert np.allclose(mm.input_row_col_indices()["row"], expected["row"])
+    assert np.allclose(mm.input_row_col_indices()["col"], expected["col"])
+
+
+def test_input_uncertainties(sensitivity_dps):
+    mm = MappedMatrix(
+        packages=sensitivity_dps,
+        matrix="matrix",
+        use_vectors=True,
+        use_arrays=True,
+        use_distributions=True,
+    )
+
+    magic = 191664963
+
+    expected = np.array(
+        [
+            (99, magic % 100, np.NaN, np.NaN, np.NaN, np.NaN, False),
+            (99, magic % 100, np.NaN, np.NaN, np.NaN, np.NaN, False),
+            (99, magic % 100, np.NaN, np.NaN, np.NaN, np.NaN, False),
+            (98, -8.5, 1.118034, np.NaN, np.NaN, np.NaN, False),
+            (98, 9.5, 1.118034, np.NaN, np.NaN, np.NaN, False),
+            (4, 1, np.NaN, np.NaN, 0.5, 1.5, False),
+            (4, 2, np.NaN, np.NaN, 1.5, 2.5, False),
+            (0, 1, np.NaN, np.NaN, np.NaN, np.NaN, True),
+            (4, 3, np.NaN, np.NaN, 2.5, 3.5, True),
+            (99, 1, np.NaN, np.NaN, np.NaN, np.NaN, False),
+            (99, 2, np.NaN, np.NaN, np.NaN, np.NaN, False),
+            (99, 3, np.NaN, np.NaN, np.NaN, np.NaN, False),
+        ],
+        dtype=bwp.UNCERTAINTY_DTYPE,
+    )
+    ua = mm.input_uncertainties()
+    for field, _ in bwp.UNCERTAINTY_DTYPE:
+        assert np.allclose(ua[field], expected[field], equal_nan=True)
+
+
+def test_input_uncertainties_limit_samples(sensitivity_dps):
+    mm = MappedMatrix(
+        packages=sensitivity_dps,
+        matrix="matrix",
+        use_vectors=True,
+        use_arrays=True,
+        use_distributions=True,
+    )
+
+    magic = 191664963
+
+    expected = np.array(
+        [
+            (99, magic % 100, np.NaN, np.NaN, np.NaN, np.NaN, False),
+            (99, magic % 100, np.NaN, np.NaN, np.NaN, np.NaN, False),
+            (99, magic % 100, np.NaN, np.NaN, np.NaN, np.NaN, False),
+            (98, -8, 0.8164966, np.NaN, np.NaN, np.NaN, False),
+            (98, 9, 0.8164966, np.NaN, np.NaN, np.NaN, False),
+            (4, 1, np.NaN, np.NaN, 0.5, 1.5, False),
+            (4, 2, np.NaN, np.NaN, 1.5, 2.5, False),
+            (0, 1, np.NaN, np.NaN, np.NaN, np.NaN, True),
+            (4, 3, np.NaN, np.NaN, 2.5, 3.5, True),
+            (99, 1, np.NaN, np.NaN, np.NaN, np.NaN, False),
+            (99, 2, np.NaN, np.NaN, np.NaN, np.NaN, False),
+            (99, 3, np.NaN, np.NaN, np.NaN, np.NaN, False),
+        ],
+        dtype=bwp.UNCERTAINTY_DTYPE,
+    )
+    ua = mm.input_uncertainties(number_samples=3)
+    for field, _ in bwp.UNCERTAINTY_DTYPE:
+        assert np.allclose(ua[field], expected[field], equal_nan=True)
+
+
+def test_input_uncertainties_no_distributions(sensitivity_dps):
+    mm = MappedMatrix(
+        packages=sensitivity_dps,
+        matrix="matrix",
+        use_vectors=True,
+        use_arrays=True,
+        use_distributions=False,
+    )
+
+    magic = 191664963
+
+    expected = np.array(
+        [
+            (99, magic % 100, np.NaN, np.NaN, np.NaN, np.NaN, False),
+            (99, magic % 100, np.NaN, np.NaN, np.NaN, np.NaN, False),
+            (99, magic % 100, np.NaN, np.NaN, np.NaN, np.NaN, False),
+            (98, -8.5, 1.118034, np.NaN, np.NaN, np.NaN, False),
+            (98, 9.5, 1.118034, np.NaN, np.NaN, np.NaN, False),
+            (0, 1, np.NaN, np.NaN, np.NaN, np.NaN, False),
+            (0, 2, np.NaN, np.NaN, np.NaN, np.NaN, False),
+            (0, -1, np.NaN, np.NaN, np.NaN, np.NaN, False),
+            (0, -3, np.NaN, np.NaN, np.NaN, np.NaN, False),
+            (99, 1, np.NaN, np.NaN, np.NaN, np.NaN, False),
+            (99, 2, np.NaN, np.NaN, np.NaN, np.NaN, False),
+            (99, 3, np.NaN, np.NaN, np.NaN, np.NaN, False),
+        ],
+        dtype=bwp.UNCERTAINTY_DTYPE,
+    )
+    ua = mm.input_uncertainties()
+    for field, _ in bwp.UNCERTAINTY_DTYPE:
+        assert np.allclose(ua[field], expected[field], equal_nan=True)
