@@ -9,7 +9,6 @@ from fs.zipfs import ZipFS
 from matrix_utils import MappedMatrix
 from matrix_utils.errors import AllArraysEmpty, EmptyArray
 
-
 dirpath = Path(__file__).parent.resolve() / "fixtures"
 
 
@@ -208,173 +207,268 @@ def sensitivity_dps():
     return dp_1, dp_2
 
 
-def test_matrix_building_multiple_dps_no_distributions_no_arrays_replacement(sensitivity_dps):
-    sensitivity_dps[1].metadata['sum_intra_duplicates'] = False
-    mm = MappedMatrix(packages=sensitivity_dps, matrix='matrix', use_vectors=True, use_arrays=False, use_distributions=False)
-    expected = np.array([
-        [0, 0, 1],
-        [2, -1, 3],
-    ])
-    assert np.allclose(mm.matrix.toarray(), expected)
-
-
-def test_matrix_building_multiple_dps_no_distributions_no_arrays_replacement_summing_intra(sensitivity_dps):
-    mm = MappedMatrix(packages=sensitivity_dps, matrix='matrix', use_vectors=True, use_arrays=False, use_distributions=False)
-    expected = np.array([
-        [0, 0, 1],
-        [2, 1, 3],
-    ])
-    assert np.allclose(mm.matrix.toarray(), expected)
-
-
-def test_matrix_building_multiple_dps_no_distributions_no_arrays_summing_inter_within_package(sensitivity_dps):
-    sensitivity_dps[1].metadata['sum_inter_duplicates'] = True
-    mm = MappedMatrix(packages=sensitivity_dps, matrix='matrix', use_vectors=True, use_arrays=False, use_distributions=False)
-    expected = np.array([
-        [0, 0, 1],
-        [3, 1, 0],
-    ])
-    assert np.allclose(mm.matrix.toarray(), expected)
-
-
-def test_matrix_building_multiple_dps_yes_distributions_no_arrays_replacement(sensitivity_dps):
-    sensitivity_dps[1].metadata['sum_intra_duplicates'] = False
-    mm = MappedMatrix(packages=sensitivity_dps, matrix='matrix', use_vectors=True, use_arrays=False, use_distributions=True)
-
-    expected = np.array([
-        [0, 0, 1],
-        [2, -1, 3],
-    ])
-    assert np.allclose(mm.matrix.toarray(), expected)
-
-
-def test_matrix_building_multiple_dps_yes_distributions_no_arrays_sum_both_within_package(sensitivity_dps):
-    sensitivity_dps[1].metadata['sum_inter_duplicates'] = True
-    mm = MappedMatrix(packages=sensitivity_dps, matrix='matrix', use_vectors=True, use_arrays=False, use_distributions=True)
-
-    sample = [
-        0.87454012,
-        2.45071431,
-        1.,
-        3.23199394
-    ]
-    expected = np.array([
-        [0, 0, 1],
-        [2 + sample[0], sample[1] - sample[2], 3 - sample[3]],
-    ])
-    assert np.allclose(mm.matrix.toarray(), expected)
-
-
-def test_matrix_building_multiple_dps_yes_distributions_no_arrays_sum_inter_only(sensitivity_dps):
-    sensitivity_dps[1].metadata['sum_inter_duplicates'] = True
-    sensitivity_dps[1].metadata['sum_intra_duplicates'] = False
-    mm = MappedMatrix(packages=sensitivity_dps, matrix='matrix', use_vectors=True, use_arrays=False, use_distributions=True)
-
-    sample = [
-        0.87454012,
-        2.45071431,
-        1.,
-        3.23199394
-    ]
-    expected = np.array([
-        [0, 0, 1],
-        [2 + sample[0], -sample[2], 3 - sample[3]],
-    ])
-    assert np.allclose(mm.matrix.toarray(), expected)
-
-
-def test_matrix_building_multiple_dps_yes_distributions_no_arrays_sum_intra_only(sensitivity_dps):
-    mm = MappedMatrix(packages=sensitivity_dps, matrix='matrix', use_vectors=True, use_arrays=False, use_distributions=True)
-
-    sample = [
-        0.87454012,
-        2.45071431,
-        1.,
-        3.23199394
-    ]
-    expected = np.array([
-        [0, 0, 1],
-        [2, sample[1] - sample[2], 3],
-    ])
-    assert np.allclose(mm.matrix.toarray(), expected)
-
-
-def test_matrix_building_multiple_dps_no_distributions_yes_arrays_replacement(sensitivity_dps):
-    indices = [
-        191664963,
-        1662057957,
-        1405681631,
-    ]
-    sensitivity_dps[0].metadata['sum_intra_duplicates'] = False
-    sensitivity_dps[1].metadata['sum_intra_duplicates'] = False
-    mm = MappedMatrix(packages=sensitivity_dps, matrix='matrix', use_vectors=True, use_arrays=True, use_distributions=False)
-
-    for index in indices:
-        expected = np.array([
-            [-(index % 4 + 7), 0, 1],
-            [0, (index % 4 + 8), index % 100],
+def test_matrix_building_multiple_dps_no_distributions_no_arrays_replacement(
+    sensitivity_dps,
+):
+    sensitivity_dps[1].metadata["sum_intra_duplicates"] = False
+    mm = MappedMatrix(
+        packages=sensitivity_dps,
+        matrix="matrix",
+        use_vectors=True,
+        use_arrays=False,
+        use_distributions=False,
+    )
+    expected = np.array(
+        [
+            [0, 0, 1],
             [2, -1, 3],
-        ])
-        assert np.allclose(mm.matrix.toarray(), expected)
-        next(mm)
+        ]
+    )
+    assert np.allclose(mm.matrix.toarray(), expected)
 
 
-def test_matrix_building_multiple_dps_no_distributions_yes_arrays_sum_intra_only(sensitivity_dps):
+def test_matrix_building_multiple_dps_no_distributions_no_arrays_replacement_summing_intra(
+    sensitivity_dps,
+):
+    mm = MappedMatrix(
+        packages=sensitivity_dps,
+        matrix="matrix",
+        use_vectors=True,
+        use_arrays=False,
+        use_distributions=False,
+    )
+    expected = np.array(
+        [
+            [0, 0, 1],
+            [2, 1, 3],
+        ]
+    )
+    assert np.allclose(mm.matrix.toarray(), expected)
+
+
+def test_matrix_building_multiple_dps_no_distributions_no_arrays_summing_inter_within_package(
+    sensitivity_dps,
+):
+    sensitivity_dps[1].metadata["sum_inter_duplicates"] = True
+    mm = MappedMatrix(
+        packages=sensitivity_dps,
+        matrix="matrix",
+        use_vectors=True,
+        use_arrays=False,
+        use_distributions=False,
+    )
+    expected = np.array(
+        [
+            [0, 0, 1],
+            [3, 1, 0],
+        ]
+    )
+    assert np.allclose(mm.matrix.toarray(), expected)
+
+
+def test_matrix_building_multiple_dps_yes_distributions_no_arrays_replacement(
+    sensitivity_dps,
+):
+    sensitivity_dps[1].metadata["sum_intra_duplicates"] = False
+    mm = MappedMatrix(
+        packages=sensitivity_dps,
+        matrix="matrix",
+        use_vectors=True,
+        use_arrays=False,
+        use_distributions=True,
+    )
+
+    expected = np.array(
+        [
+            [0, 0, 1],
+            [2, -1, 3],
+        ]
+    )
+    assert np.allclose(mm.matrix.toarray(), expected)
+
+
+def test_matrix_building_multiple_dps_yes_distributions_no_arrays_sum_both_within_package(
+    sensitivity_dps,
+):
+    sensitivity_dps[1].metadata["sum_inter_duplicates"] = True
+    mm = MappedMatrix(
+        packages=sensitivity_dps,
+        matrix="matrix",
+        use_vectors=True,
+        use_arrays=False,
+        use_distributions=True,
+    )
+
+    sample = [0.87454012, 2.45071431, 1.0, 3.23199394]
+    expected = np.array(
+        [
+            [0, 0, 1],
+            [2 + sample[0], sample[1] - sample[2], 3 - sample[3]],
+        ]
+    )
+    assert np.allclose(mm.matrix.toarray(), expected)
+
+
+def test_matrix_building_multiple_dps_yes_distributions_no_arrays_sum_inter_only(
+    sensitivity_dps,
+):
+    sensitivity_dps[1].metadata["sum_inter_duplicates"] = True
+    sensitivity_dps[1].metadata["sum_intra_duplicates"] = False
+    mm = MappedMatrix(
+        packages=sensitivity_dps,
+        matrix="matrix",
+        use_vectors=True,
+        use_arrays=False,
+        use_distributions=True,
+    )
+
+    sample = [0.87454012, 2.45071431, 1.0, 3.23199394]
+    expected = np.array(
+        [
+            [0, 0, 1],
+            [2 + sample[0], -sample[2], 3 - sample[3]],
+        ]
+    )
+    assert np.allclose(mm.matrix.toarray(), expected)
+
+
+def test_matrix_building_multiple_dps_yes_distributions_no_arrays_sum_intra_only(
+    sensitivity_dps,
+):
+    mm = MappedMatrix(
+        packages=sensitivity_dps,
+        matrix="matrix",
+        use_vectors=True,
+        use_arrays=False,
+        use_distributions=True,
+    )
+
+    sample = [0.87454012, 2.45071431, 1.0, 3.23199394]
+    expected = np.array(
+        [
+            [0, 0, 1],
+            [2, sample[1] - sample[2], 3],
+        ]
+    )
+    assert np.allclose(mm.matrix.toarray(), expected)
+
+
+def test_matrix_building_multiple_dps_no_distributions_yes_arrays_replacement(
+    sensitivity_dps,
+):
     indices = [
         191664963,
         1662057957,
         1405681631,
     ]
-    mm = MappedMatrix(packages=sensitivity_dps, matrix='matrix', use_vectors=True, use_arrays=True, use_distributions=False)
+    sensitivity_dps[0].metadata["sum_intra_duplicates"] = False
+    sensitivity_dps[1].metadata["sum_intra_duplicates"] = False
+    mm = MappedMatrix(
+        packages=sensitivity_dps,
+        matrix="matrix",
+        use_vectors=True,
+        use_arrays=True,
+        use_distributions=False,
+    )
 
     for index in indices:
-        expected = np.array([
-            [-(index % 4 + 7), 0, 1],
-            [0, (index % 4 + 8), index % 100],
-            [2, 2-1, 3],
-        ])
+        expected = np.array(
+            [
+                [-(index % 4 + 7), 0, 1],
+                [0, (index % 4 + 8), index % 100],
+                [2, -1, 3],
+            ]
+        )
         assert np.allclose(mm.matrix.toarray(), expected)
         next(mm)
 
 
-def test_matrix_building_multiple_dps_no_distributions_yes_arrays_sum_inter_only(sensitivity_dps):
+def test_matrix_building_multiple_dps_no_distributions_yes_arrays_sum_intra_only(
+    sensitivity_dps,
+):
     indices = [
         191664963,
         1662057957,
         1405681631,
     ]
-    sensitivity_dps[0].metadata['sum_intra_duplicates'] = False
-    sensitivity_dps[1].metadata['sum_intra_duplicates'] = False
-    sensitivity_dps[0].metadata['sum_inter_duplicates'] = True
-    sensitivity_dps[1].metadata['sum_inter_duplicates'] = True
-    mm = MappedMatrix(packages=sensitivity_dps, matrix='matrix', use_vectors=True, use_arrays=True, use_distributions=False)
+    mm = MappedMatrix(
+        packages=sensitivity_dps,
+        matrix="matrix",
+        use_vectors=True,
+        use_arrays=True,
+        use_distributions=False,
+    )
 
     for index in indices:
-        expected = np.array([
-            [index % 100 - (index % 4 + 7), 0, 1],
-            [0, (index % 4 + 8), index % 100],
-            [1 + 2, index % 100 - 1, 3 - 3],
-        ])
+        expected = np.array(
+            [
+                [-(index % 4 + 7), 0, 1],
+                [0, (index % 4 + 8), index % 100],
+                [2, 2 - 1, 3],
+            ]
+        )
         assert np.allclose(mm.matrix.toarray(), expected)
         next(mm)
 
 
-def test_matrix_building_multiple_dps_no_distributions_yes_arrays_sum_both(sensitivity_dps):
+def test_matrix_building_multiple_dps_no_distributions_yes_arrays_sum_inter_only(
+    sensitivity_dps,
+):
     indices = [
         191664963,
         1662057957,
         1405681631,
     ]
-    sensitivity_dps[0].metadata['sum_inter_duplicates'] = True
-    sensitivity_dps[1].metadata['sum_inter_duplicates'] = True
-    mm = MappedMatrix(packages=sensitivity_dps, matrix='matrix', use_vectors=True, use_arrays=True, use_distributions=False)
+    sensitivity_dps[0].metadata["sum_intra_duplicates"] = False
+    sensitivity_dps[1].metadata["sum_intra_duplicates"] = False
+    sensitivity_dps[0].metadata["sum_inter_duplicates"] = True
+    sensitivity_dps[1].metadata["sum_inter_duplicates"] = True
+    mm = MappedMatrix(
+        packages=sensitivity_dps,
+        matrix="matrix",
+        use_vectors=True,
+        use_arrays=True,
+        use_distributions=False,
+    )
 
     for index in indices:
-        expected = np.array([
-            [index % 100 - (index % 4 + 7), 0, 1],
-            [0, (index % 4 + 8), index % 100],
-            [1 + 2, 2 + index % 100 - 1, 3 - 3],
-        ])
+        expected = np.array(
+            [
+                [index % 100 - (index % 4 + 7), 0, 1],
+                [0, (index % 4 + 8), index % 100],
+                [1 + 2, index % 100 - 1, 3 - 3],
+            ]
+        )
+        assert np.allclose(mm.matrix.toarray(), expected)
+        next(mm)
+
+
+def test_matrix_building_multiple_dps_no_distributions_yes_arrays_sum_both(
+    sensitivity_dps,
+):
+    indices = [
+        191664963,
+        1662057957,
+        1405681631,
+    ]
+    sensitivity_dps[0].metadata["sum_inter_duplicates"] = True
+    sensitivity_dps[1].metadata["sum_inter_duplicates"] = True
+    mm = MappedMatrix(
+        packages=sensitivity_dps,
+        matrix="matrix",
+        use_vectors=True,
+        use_arrays=True,
+        use_distributions=False,
+    )
+
+    for index in indices:
+        expected = np.array(
+            [
+                [index % 100 - (index % 4 + 7), 0, 1],
+                [0, (index % 4 + 8), index % 100],
+                [1 + 2, 2 + index % 100 - 1, 3 - 3],
+            ]
+        )
         assert np.allclose(mm.matrix.toarray(), expected)
         next(mm)
 

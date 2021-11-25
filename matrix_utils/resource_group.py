@@ -52,6 +52,7 @@ class ResourceGroup:
     The current data, as entered into the matrix, is given by ``.current_data``.
 
     """
+
     def __init__(
         self,
         *,
@@ -77,7 +78,9 @@ class ResourceGroup:
 
         if self.use_distributions and self.vector:
             if self.has_distributions:
-                self.rng = MCRandomNumberGenerator(params=self.data_original, seed=self.seed)
+                self.rng = MCRandomNumberGenerator(
+                    params=self.data_original, seed=self.seed
+                )
             else:
                 self.rng = FakeRNG(self.data_original)
 
@@ -85,7 +88,14 @@ class ResourceGroup:
         self.empty = self.get_indices_data().shape == (0,)
 
     def __str__(self):
-        return "ResourceGroup {}\n\tVector: {}\n\tDistributions: {}\n\tTranspose: {}\n\tSeed: {}\n\tCustom filter: {}".format(self.label, self.vector, self.use_distributions, self.transpose, self.seed, bool(self.custom_filter))
+        return "ResourceGroup {}\n\tVector: {}\n\tDistributions: {}\n\tTranspose: {}\n\tSeed: {}\n\tCustom filter: {}".format(
+            self.label,
+            self.vector,
+            self.use_distributions,
+            self.transpose,
+            self.seed,
+            bool(self.custom_filter),
+        )
 
     @property
     def has_distributions(self):

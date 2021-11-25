@@ -1,6 +1,6 @@
 import bw_processing as bwp
 import numpy as np
-from fixtures import aggregation, basic_mm, overlapping, diagonal
+from fixtures import aggregation, basic_mm, diagonal, overlapping
 
 from matrix_utils import MappedMatrix
 

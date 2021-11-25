@@ -1,14 +1,14 @@
-from typing import Any, Callable, Sequence, Optional
+from typing import Any, Callable, Optional, Sequence
 
 import numpy as np
-from bw_processing import Datapackage, UNCERTAINTY_DTYPE, INDICES_DTYPE
+from bw_processing import INDICES_DTYPE, UNCERTAINTY_DTYPE, Datapackage
 from scipy import sparse
 
 from .array_mapper import ArrayMapper
+from .errors import EmptyInterface
 from .indexers import CombinatorialIndexer, RandomIndexer, SequentialIndexer
 from .resource_group import ResourceGroup
 from .utils import filter_groups_for_packages, safe_concatenate_indices
-from .errors import EmptyInterface
 
 
 class MappedMatrix:
@@ -35,6 +35,7 @@ class MappedMatrix:
         * empty_ok: If False, raise `AllArraysEmpty` if the matrix would be empty
 
     """
+
     def __init__(
         self,
         *,
@@ -190,12 +191,9 @@ class MappedMatrix:
                 for obj in resources:
                     obj.add_indexer(indexer=package.indexer)
 
-    @property
     def input_data_vector(self):
-        for group in self.groups:
-            return np.hstack(group.current_data)
+        return np.hstack([group.data_current for group in self.groups])
 
-    @property
     def input_row_col_indices(self):
         rows, cols = [], []
 
@@ -206,11 +204,10 @@ class MappedMatrix:
         rows, cols = np.hstack(rows), np.hstack(cols)
 
         array = np.empty(shape=(len(rows),), dtype=INDICES_DTYPE)
-        array["rows"] = rows
-        array["cols"] = cols
+        array["row"] = rows
+        array["col"] = cols
         return array
 
-    @property
     def input_indexer_vector(self):
         index_values = []
 
@@ -226,16 +223,16 @@ class MappedMatrix:
                 )
         return np.array(index_values)
 
-    def _construct_distributions_array(self, given):
+    def _construct_distributions_array(self, given, uncertainty_type=0):
         FIELDS = ["scale", "shape", "minimum", "maximum"]
 
         array = np.zeros(len(given), dtype=UNCERTAINTY_DTYPE)
         for field in FIELDS:
             array[field] = np.NaN
         array["loc"] = given
+        array["uncertainty_type"] = uncertainty_type
         return array
 
-    @property
     def input_uncertainties(self, number_samples: Optional[int] = None):
         """Return the stacked uncertainty arrays of all resources groups.
 
@@ -243,29 +240,46 @@ class MappedMatrix:
 
         If the resource group has a distributions array, then this is returned. Otherwise, if the data is static, a distributions array with uncertainty type 0 (undefined uncertainty) is constructed. If the data is an array, an estimate of the mean and standard deviation are given in the ``loc`` and ``scale`` columns. This estimate uses ``number_samples`` columns, or all columns if ``number_samples`` is ``None``.
 
-        If the data comes from an interface,  a distributions array with uncertainty type 0. Regardless if whether it is a vector or an array interface, the current data vector is used, and no estimate of uncertainty is made.
+        If the data comes from an interface, a distributions array with uncertainty type 0 will be created. Regardless if whether it is a vector or an array interface, the current data vector is used, and no estimate of uncertainty is made. Therefore, this data will never consume new data from an interface.
 
-        Raises a ``TypeError`` if distributions arrays are present but don't follow the dtype of ``bw_processing.UNCERTAINTY_DTYPE``."""
+        Raises a ``TypeError`` if distributions arrays are present but don't follow the dtype of ``bw_processing.UNCERTAINTY_DTYPE``.
+
+        As both population samples (arrays) and interfaces don't fit into the traditional ``stat_arrays`` framework, we mark these with custom ``uncertainty_types``:
+
+        * ``98`` for arrays
+        * ``99`` for interfaces
+
+        """
         arrays = []
 
         for group in self.groups:
-            if group.has_distributions:
+            if group.has_distributions and self.use_distributions:
                 if group.data_original.dtype != UNCERTAINTY_DTYPE:
                     raise TypeError(
-                        f"Distributions datatype must be `bw_processing.UNCERTAINTY_DTYPE`, but was {data.dtype}"
+                        "Distributions datatype should be `bw_processing.UNCERTAINTY_DTYPE`, but was {}".format(
+                            group.data_original.dtype
+                        )
                     )
                 arrays.append(group.apply_masks(group.data_original))
-            elif group.is_array():
+            elif group.is_array() and not group.is_interface():
                 data = group.data_original
                 if number_samples is not None:
                     data = data[:, :number_samples]
 
-                (mean,) = np.mean(data, axis=1)
-                array = self._construct_distributions_array(group.data_current)
+                array = self._construct_distributions_array(
+                    group.data_current, uncertainty_type=98
+                )
                 array["loc"] = np.mean(data, axis=1)
+                array["loc"][group.flip] *= -1
                 array["scale"] = np.std(data, axis=1)
                 arrays.append(array)
+            elif group.is_interface():
+                arrays.append(
+                    self._construct_distributions_array(
+                        group.data_current, uncertainty_type=99
+                    )
+                )
             else:
-                arrays.append(self._construct_distributions_array(group.current_data))
+                arrays.append(self._construct_distributions_array(group.data_current))
 
         return np.hstack(arrays)
