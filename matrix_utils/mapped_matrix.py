@@ -55,6 +55,9 @@ class MappedMatrix:
         self.seed_override = seed_override
         self.diagonal = diagonal
         self.matrix_label = matrix
+        self.use_distributions = use_distributions
+        self.use_vectors = use_vectors
+        self.use_arrays = use_arrays
         self.packages = {
             package: [
                 ResourceGroup(
