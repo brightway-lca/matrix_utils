@@ -1,10 +1,8 @@
 from pathlib import Path
 
 import numpy as np
+from bw_processing import INDICES_DTYPE, UNCERTAINTY_DTYPE, create_datapackage
 from fs.zipfs import ZipFS
-
-from bw_processing import INDICES_DTYPE, create_datapackage, UNCERTAINTY_DTYPE
-
 
 """Create fixture to test cross-platform consistency in ordering resource groups.
 
@@ -155,12 +153,17 @@ def create_sensitivity_fixtures():
 
     data_array = np.array([1, 2, 1, 3])
     flip_array = np.array([0, 0, 1, 1], dtype=bool)
-    indices_array = np.array([(12, 10), (12, 11), (12, 11), (12, 12)], dtype=INDICES_DTYPE)
+    indices_array = np.array(
+        [(12, 10), (12, 11), (12, 11), (12, 12)], dtype=INDICES_DTYPE
+    )
     distributions_array = np.zeros((4,), dtype=UNCERTAINTY_DTYPE)
-    distributions_array['uncertainty_type'] = (4, 4, 0, 4)
-    distributions_array['minimum'] = (0.5, 1.5, np.NaN, 2.5)
-    distributions_array['maximum'] = (1.5, 2.5, np.NaN, 3.5)
-    distributions_array['loc'] = (1, 2, 1, 3)
+    distributions_array["uncertainty_type"] = (4, 4, 0, 4)
+    distributions_array["scale"] = np.NaN
+    distributions_array["shape"] = np.NaN
+    distributions_array["minimum"] = (0.5, 1.5, np.NaN, 2.5)
+    distributions_array["maximum"] = (1.5, 2.5, np.NaN, 3.5)
+    distributions_array["loc"] = (1, 2, 1, 3)
+    distributions_array["negative"] = (False, False, True, True)
     dp.add_persistent_vector(
         matrix="matrix",
         data_array=data_array,
