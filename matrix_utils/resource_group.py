@@ -223,7 +223,7 @@ class ResourceGroup:
         if vector is not None:
             data = vector
         elif self.vector:
-            if self.use_distributions:
+            if self.use_distributions and self.has_distributions:
                 data = next(self.rng)
             else:
                 try:
