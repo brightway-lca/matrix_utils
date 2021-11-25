@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.2] - DEV
+## [0.2] - 2021-11-25
 
 ### Added attributes in `MappedMatrix` for sensitivity analysis
 
