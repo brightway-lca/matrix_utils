@@ -52,7 +52,6 @@ class ResourceGroup:
     The current data, as entered into the matrix, is given by ``.current_data``.
 
     """
-
     def __init__(
         self,
         *,
@@ -69,6 +68,7 @@ class ResourceGroup:
         self.custom_filter = custom_filter
         self.transpose = transpose
         self.vector = self.is_vector()
+        self.seed = seed_override or self.package.metadata.get("seed")
 
         if custom_filter is not None:
             self.custom_filter_mask = custom_filter(self.get_indices_data())
@@ -76,9 +76,8 @@ class ResourceGroup:
             self.custom_filter_mask = None
 
         if self.use_distributions and self.vector:
-            seed = seed_override or self.package.metadata.get("seed")
             if self.has_distributions:
-                self.rng = MCRandomNumberGenerator(params=self.data_original, seed=seed)
+                self.rng = MCRandomNumberGenerator(params=self.data_original, seed=self.seed)
             else:
                 self.rng = FakeRNG(self.data_original)
 
