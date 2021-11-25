@@ -146,10 +146,11 @@ def create_sensitivity_fixtures():
         fs=ZipFS(str(dirpath / "sa-2.zip"), write=True),
         name="sa-2",
         id_="sa-2",
+        seed=42,
     )
 
-    # 0 0   0
-    # 0 0   0
+    # 0 0    0
+    # 0 0    0
     # 1 2-1 -3
 
     data_array = np.array([1, 2, 1, 3])
@@ -159,6 +160,7 @@ def create_sensitivity_fixtures():
     distributions_array['uncertainty_type'] = (4, 4, 0, 4)
     distributions_array['minimum'] = (0.5, 1.5, np.NaN, 2.5)
     distributions_array['maximum'] = (1.5, 2.5, np.NaN, 3.5)
+    distributions_array['loc'] = (1, 2, 1, 3)
     dp.add_persistent_vector(
         matrix="matrix",
         data_array=data_array,
