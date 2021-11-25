@@ -35,7 +35,6 @@ class MappedMatrix:
         * empty_ok: If False, raise `AllArraysEmpty` if the matrix would be empty
 
     """
-
     def __init__(
         self,
         *,
