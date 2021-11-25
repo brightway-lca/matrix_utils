@@ -635,3 +635,47 @@ def test_input_uncertainties_no_distributions(sensitivity_dps):
     ua = mm.input_uncertainties()
     for field, _ in bwp.UNCERTAINTY_DTYPE:
         assert np.allclose(ua[field], expected[field], equal_nan=True)
+
+
+def test_input_index_vector(sensitivity_dps):
+    dp = bwp.create_datapackage(combinatorial=True)
+
+    indices_array = np.array([(10, 10), (11, 11)], dtype=bwp.INDICES_DTYPE)
+    data_array = np.array([[7, 8], [8, 9]]).T
+    flip_array = np.array([1, 0], dtype=bool)
+    dp.add_persistent_array(
+        matrix="matrix",
+        data_array=data_array,
+        name="g",
+        indices_array=indices_array,
+        flip_array=flip_array,
+    )
+    dp.add_persistent_array(
+        matrix="matrix",
+        data_array=data_array,
+        name="h",
+        indices_array=indices_array,
+        flip_array=flip_array,
+    )
+
+    mm = MappedMatrix(
+        packages=list(sensitivity_dps) + [dp],
+        matrix="matrix",
+        use_vectors=True,
+        use_arrays=True,
+        use_distributions=False,
+    )
+
+    expected = [
+        (191664963, 191664963, 0, 0),
+        (1662057957, 1662057957, 0, 1),
+        (1405681631, 1405681631, 1, 0),
+        (942484272, 942484272, 1, 1),
+    ]
+    for row in expected:
+        print(mm.input_indexer_vector())
+        assert np.allclose(mm.input_indexer_vector(), row)
+        try:
+            next(mm)
+        except StopIteration:
+            pass

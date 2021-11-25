@@ -213,8 +213,8 @@ class MappedMatrix:
 
         for package in self.packages:
             value = package.indexer.index
-            if isinstance(value, int):
-                index_values.append(value)
+            if isinstance(value, (int, np.int32, np.int64)):
+                index_values.append(int(value))
             elif isinstance(value, tuple):
                 index_values.extend(list(value))
             else:
