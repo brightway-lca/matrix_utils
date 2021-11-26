@@ -1,4 +1,4 @@
-from typing import Any, Callable, Optional, Sequence
+from typing import Any, Callable, Optional, Sequence, List
 
 import numpy as np
 from bw_processing import INDICES_DTYPE, UNCERTAINTY_DTYPE, Datapackage
@@ -191,10 +191,10 @@ class MappedMatrix:
                 for obj in resources:
                     obj.add_indexer(indexer=package.indexer)
 
-    def input_data_vector(self):
+    def input_data_vector(self) -> np.ndarray:
         return np.hstack([group.data_current for group in self.groups])
 
-    def input_row_col_indices(self):
+    def input_row_col_indices(self) -> np.ndarray:
         rows, cols = [], []
 
         for group in self.groups:
@@ -208,7 +208,22 @@ class MappedMatrix:
         array["col"] = cols
         return array
 
-    def input_indexer_vector(self):
+    def input_provenance(self) -> List[tuple]:
+        """Describe where the data in the other ``input_X`` comes from. Returns a list of ``(datapackage, group_label, (start_index, end_index))`` tuples.
+
+        Note that the ``end_index`` is exclusive, following the Python slicing convention, i.e. ``(7, 9)`` means start from the 8th element (indices start from 0), and go up to but don't include the 10th element (i.e. (7, 9) has two elements)."""
+        position, result = 0, []
+
+        for package, groups in self.packages.items():
+            for group in groups:
+                num_elements = len(group.data_current)
+                # Minus one because we include the first element as element 0
+                result.append((package, group.label, (position, position + num_elements)))
+                # Plus one because start at the next value
+                position += num_elements
+        return result
+
+    def input_indexer_vector(self) -> np.ndarray:
         index_values = []
 
         for package in self.packages:
@@ -223,7 +238,7 @@ class MappedMatrix:
                 )
         return np.array(index_values)
 
-    def _construct_distributions_array(self, given, uncertainty_type=0):
+    def _construct_distributions_array(self, given, uncertainty_type=0) -> np.ndarray:
         FIELDS = ["scale", "shape", "minimum", "maximum"]
 
         array = np.zeros(len(given), dtype=UNCERTAINTY_DTYPE)
@@ -233,7 +248,7 @@ class MappedMatrix:
         array["uncertainty_type"] = uncertainty_type
         return array
 
-    def input_uncertainties(self, number_samples: Optional[int] = None):
+    def input_uncertainties(self, number_samples: Optional[int] = None) -> np.ndarray:
         """Return the stacked uncertainty arrays of all resources groups.
 
         Note that this data is masked with both the custom filter (if present) and the mapping mask!

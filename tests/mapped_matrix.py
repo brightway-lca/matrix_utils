@@ -538,6 +538,24 @@ def test_input_row_col_indices(sensitivity_dps):
     assert np.allclose(mm.input_row_col_indices()["col"], expected["col"])
 
 
+def test_input_provenance(sensitivity_dps):
+    mm = MappedMatrix(
+        packages=sensitivity_dps,
+        matrix="matrix",
+        use_vectors=True,
+        use_arrays=True,
+        use_distributions=False,
+    )
+
+    expected = [
+        (sensitivity_dps[0], "a", (0, 3)),
+        (sensitivity_dps[0], "b", (3, 5)),
+        (sensitivity_dps[1], "c", (5, 9)),
+        (sensitivity_dps[1], "d", (9, 12)),
+    ]
+    assert mm.input_provenance() == expected
+
+
 def test_input_uncertainties(sensitivity_dps):
     mm = MappedMatrix(
         packages=sensitivity_dps,
