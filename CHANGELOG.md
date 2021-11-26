@@ -1,5 +1,9 @@
 # Changelog
 
+### [0.2.1] - 2021-11-26
+
+* Add `input_provenance` function on showing from which datapackage and resource group data comes from
+
 ## [0.2] - 2021-11-25
 
 ### Added attributes in `MappedMatrix` for sensitivity analysis
