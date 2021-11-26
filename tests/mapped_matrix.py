@@ -6,7 +6,7 @@ import pytest
 from fixtures import basic_mm, diagonal
 from fs.zipfs import ZipFS
 
-from matrix_utils import MappedMatrix
+from matrix_utils import MappedMatrix, ArrayMapper
 from matrix_utils.errors import AllArraysEmpty, EmptyArray
 
 dirpath = Path(__file__).parent.resolve() / "fixtures"
@@ -697,3 +697,86 @@ def test_input_index_vector(sensitivity_dps):
             next(mm)
         except StopIteration:
             pass
+
+
+def test_all_empty_after_custom_filter():
+    s = bwp.create_datapackage()
+    s.add_persistent_vector(
+        matrix="foo",
+        data_array=np.arange(2),
+        indices_array=np.array([(0, 0), (1, 0)], dtype=bwp.INDICES_DTYPE),
+    )
+    with pytest.raises(EmptyArray):
+        MappedMatrix(
+            packages=[s],
+            matrix="foo",
+            custom_filter=lambda x: x['col'] > 0
+        )
+
+    assert MappedMatrix(
+        packages=[s],
+        matrix="foo",
+        custom_filter=lambda x: x['col'] > 0,
+        empty_ok=True
+    )
+
+
+def test_one_empty_after_custom_filter():
+    s = bwp.create_datapackage()
+    s.add_persistent_vector(
+        matrix="foo",
+        data_array=np.arange(2),
+        indices_array=np.array([(0, 0), (1, 0)], dtype=bwp.INDICES_DTYPE),
+    )
+    s.add_persistent_vector(
+        matrix="foo",
+        data_array=np.arange(10, 12),
+        indices_array=np.array([(0, 1), (1, 1)], dtype=bwp.INDICES_DTYPE),
+    )
+    mm = MappedMatrix(
+        packages=[s],
+        matrix="foo",
+        custom_filter=lambda x: x['col'] > 0
+    )
+    assert mm.matrix.sum() == 21
+
+
+def test_all_empty_after_mapping():
+    s = bwp.create_datapackage()
+    s.add_persistent_vector(
+        matrix="foo",
+        data_array=np.arange(2),
+        indices_array=np.array([(0, 0), (1, 0)], dtype=bwp.INDICES_DTYPE),
+    )
+    am = ArrayMapper(array=np.array([2, 3]))
+    mm = MappedMatrix(
+        packages=[s],
+        matrix="foo",
+        row_mapper=am,
+    )
+
+    # doesn't error out because matrix has shape from array mapper
+    assert not mm.matrix.sum()
+    assert mm.matrix.shape == (2, 1)
+    assert not mm.matrix.tocoo().data.sum()
+
+
+def test_one_empty_after_mapping():
+    s = bwp.create_datapackage()
+    s.add_persistent_vector(
+        matrix="foo",
+        data_array=np.arange(2),
+        indices_array=np.array([(0, 0), (1, 0)], dtype=bwp.INDICES_DTYPE),
+    )
+    s.add_persistent_vector(
+        matrix="foo",
+        data_array=np.arange(10, 12),
+        indices_array=np.array([(10, 1), (11, 1)], dtype=bwp.INDICES_DTYPE),
+    )
+    am = ArrayMapper(array=np.array([10, 11]))
+    mm = MappedMatrix(
+        packages=[s],
+        matrix="foo",
+        row_mapper=am,
+    )
+    assert mm.matrix.sum() == 21

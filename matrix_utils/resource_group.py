@@ -185,6 +185,12 @@ class ResourceGroup:
         self.row_masked = self.apply_masks(self.row_mapped)
         self.col_masked = self.apply_masks(self.col_mapped)
 
+        if self.row_masked.shape == (0,):
+            self.row_matrix = self.row_masked
+            self.col_matrix = self.col_masked
+            self.empty = True
+            return
+
         if self.aggregate:
             self.count = max(self.row_masked.max(), self.col_masked.max()) + 1
             self.row_matrix, self.col_matrix, _ = aggregate_with_sparse(
