@@ -65,7 +65,7 @@ You may also find it useful to iterate through `MappedMatrix.groups`, which are 
 
 A `bw_processing` data package is essentially a metadata file and a bag of data resources. These resources are *grouped*, for multiple resources are needed to build one matrix, or one component of one matrix. For example, one needs not only the data vector, but also the row and column indices to build a simple matrix. One could also have a `flip` vector, in another file, used to flip the signs of data elements before matrix insertion.
 
-The `ResourceGroup` class provides a single interface to these data files and their metadata. `ResourceGroup` instances are created automatically by `MappedMatrix`, and available via `MappedMatrix.groups`. The [source code]() is pretty readable, and in general you probably don't need to worry about this low-level class, but the following could be useful:
+The `ResourceGroup` class provides a single interface to these data files and their metadata. `ResourceGroup` instances are created automatically by `MappedMatrix`, and available via `MappedMatrix.groups`. The [source code](https://github.com/brightway-lca/matrix_utils/) is pretty readable, and in general you probably don't need to worry about this low-level class, but the following could be useful:
 
 * `ResourceGroup.data_original`: The data as it is present in the datapackage, before masking (i.e. the Numpy data vector or array, or the data interface). This is the raw input data, duplicate elements are not aggregated (if applicable).
 * `ResourceGroup.data_current`: The data sample used (before aggregation) to build the matrix. It is both masked and flipped.
