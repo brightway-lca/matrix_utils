@@ -238,8 +238,8 @@ class ResourceGroup:
 
         """
         if self.empty:
-            self.current_data = np.array([])
-            return self.row_matrix, self.col_matrix, self.current_data
+            self.data_current = np.array([])
+            return self.row_matrix, self.col_matrix, self.data_current
 
         if vector is not None:
             data = vector
@@ -258,7 +258,7 @@ class ResourceGroup:
         # Copy to avoid modifying original data
         data = data.copy()
 
-        # apply bith custom filter mask and mapping mask
+        # apply both custom filter mask and mapping mask
         data = self.apply_masks(data)
 
         try:
