@@ -1,5 +1,9 @@
 # Changelog
 
+### [0.2.3] - 2022-02-02
+
+* Fix an error where the previous attribute `current_data` was not consistently changed to `data_current`
+
 ### [0.2.2] - 2021-11-26
 
 * Fix an error raised when a `ResourceGroup` was empty after masking
