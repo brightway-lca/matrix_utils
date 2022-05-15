@@ -6,13 +6,15 @@ pr:
 
 jobs:
 - job:
-  displayName: ubuntu-18.04-conda
+  displayName: ubuntu-20.04-conda
   pool:
-    vmImage: 'ubuntu-18.04'
+    vmImage: 'ubuntu-20.04'
   strategy:
     matrix:
-      Python37:
-        python.version: '3.7'
+      Python310:
+        python.version: '3.10'
+      Python39:
+        python.version: '3.9'
       Python38:
         python.version: '3.8'
 
@@ -26,7 +28,7 @@ jobs:
 
   - bash: |
       source activate bw
-      conda install --yes --quiet -c defaults -c conda-forge --name bw python=$PYTHON_VERSION numpy pandas pytest pytest-azurepipelines
+      conda install --yes --quiet -c defaults -c conda-forge --name bw python=$PYTHON_VERSION numpy pandas pytest pytest-azurepipelines">=1.0"
     displayName: Install Anaconda packages
 
   - bash: |
@@ -35,11 +37,17 @@ jobs:
     displayName: pytest
 
 - job:
-  displayName: ubuntu-18.04-pip
+  displayName: ubuntu-20.04-pip
   pool:
-    vmImage: 'ubuntu-18.04'
+    vmImage: 'ubuntu-20.04'
   strategy:
     matrix:
+      Python310:
+        python.version: '3.10'
+      Python39:
+        python.version: '3.9'
+      Python38:
+        python.version: '3.8'
       Python36:
         python.version: '3.6'
       Python37:
@@ -68,15 +76,17 @@ jobs:
     displayName: pytest
 
 - job:
-  displayName: macOS-10.14-38-conda
+  displayName: macOS-1015-38-conda
   pool:
-    vmImage: 'macOS-10.14'
+    vmImage: 'macOS-1015'
   strategy:
     matrix:
+      Python310:
+        python.version: '3.10'
+      Python39:
+        python.version: '3.9'
       Python38:
         python.version: '3.8'
-      Python37:
-        python.version: '3.7'
 
   timeoutInMinutes: 8
   steps:
@@ -91,7 +101,7 @@ jobs:
 
   - bash: |
       source activate bw
-      conda install --yes --quiet -c defaults -c conda-forge --name bw python=$PYTHON_VERSION numpy pandas pytest pytest-azurepipelines
+      conda install --yes --quiet -c defaults -c conda-forge --name bw python=$PYTHON_VERSION numpy pandas pytest pytest-azurepipelines">=1.0"
     displayName: Install Anaconda packages
 
   - bash: |
@@ -100,11 +110,81 @@ jobs:
     displayName: pytest
 
 - job:
-  displayName: macOS-10.14-pip
+  displayName: macOS-1015-pip
   pool:
-    vmImage: 'macOS-10.14'
+    vmImage: 'macOS-1015'
   strategy:
     matrix:
+      Python310:
+        python.version: '3.10'
+      Python39:
+        python.version: '3.9'
+      Python38:
+        python.version: '3.8'
+      Python37:
+        python.version: '3.7'
+      Python36:
+        python.version: '3.6'
+
+  timeoutInMinutes: 8
+  steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '$(python.version)'
+
+  - bash: |
+      python --version
+      pip3 install numpy pandas pytest pytest-cov pytest-azurepipelines
+    displayName: Install packages
+
+  - bash: |
+      pytest --color=yes -v --cov-report xml --cov=bw_processing
+    displayName: pytest
+
+- job:
+  displayName: macOS-11-38-conda
+  pool:
+    vmImage: 'macOS-11'
+  strategy:
+    matrix:
+      Python310:
+        python.version: '3.10'
+      Python39:
+        python.version: '3.9'
+      Python38:
+        python.version: '3.8'
+
+  timeoutInMinutes: 8
+  steps:
+  - bash: echo "##vso[task.prependpath]$CONDA/bin"
+    displayName: Add conda to PATH
+
+  - bash: sudo chown -R $USER $CONDA
+    displayName: Take ownership of conda installation
+
+  - bash: conda create --yes --quiet --name bw
+    displayName: Create Anaconda environment
+
+  - bash: |
+      source activate bw
+      conda install --yes --quiet -c defaults -c conda-forge --name bw python=$PYTHON_VERSION numpy pandas pytest pytest-azurepipelines">=1.0"
+    displayName: Install Anaconda packages
+
+  - bash: |
+      source activate bw
+      pytest --color=yes -v
+    displayName: pytest
+
+- job:
+  displayName: macOS-11-pip
+  pool:
+    vmImage: 'macOS-11'
+  strategy:
+    matrix:
+      Python310:
+        python.version: '3.10'
+      Python39:
+        python.version: '3.9'
       Python38:
         python.version: '3.8'
       Python37:
@@ -133,10 +213,12 @@ jobs:
     vmImage: 'vs2017-win2016'
   strategy:
     matrix:
+      Python310:
+        python.version: '3.10'
+      Python39:
+        python.version: '3.9'
       Python38:
         python.version: '3.8'
-      Python37:
-        python.version: '3.7'
 
   timeoutInMinutes: 8
   steps:
@@ -148,7 +230,7 @@ jobs:
 
   - script: |
       call activate bw
-      conda install --yes --quiet -c defaults -c conda-forge --name bw python=%PYTHON_VERSION% numpy pandas pytest pytest-azurepipelines
+      conda install --yes --quiet -c defaults -c conda-forge --name bw python=%PYTHON_VERSION% numpy pandas pytest pytest-azurepipelines">=1.0"
     displayName: Install Anaconda packages
 
   - script: |
@@ -162,6 +244,10 @@ jobs:
     vmImage: 'vs2017-win2016'
   strategy:
     matrix:
+      Python310:
+        python.version: '3.10'
+      Python39:
+        python.version: '3.9'
       Python38:
         python.version: '3.8'
       Python37:
