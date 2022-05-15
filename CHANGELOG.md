@@ -1,5 +1,9 @@
 # Changelog
 
+### [0.2.4] - 2022-055-15
+
+* Avoid `StopIteration` errors on empty combinatorial filtered datapackages
+
 ### [0.2.3] - 2022-02-02
 
 * Fix an error where the previous attribute `current_data` was not consistently changed to `data_current`
