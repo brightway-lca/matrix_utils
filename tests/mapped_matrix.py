@@ -780,3 +780,24 @@ def test_one_empty_after_mapping():
         row_mapper=am,
     )
     assert mm.matrix.sum() == 21
+
+
+def test_empty_combinatorial_datapackage():
+    s = bwp.create_datapackage()
+    s.add_persistent_vector(
+        matrix="foo",
+        data_array=np.arange(2),
+        indices_array=np.array([(0, 0), (1, 0)], dtype=bwp.INDICES_DTYPE),
+    )
+    t = bwp.create_datapackage(combinatorial=True)
+    t.add_persistent_array(
+        matrix="bar",
+        data_array=np.array([[2, 4, 8, 16]]),
+        indices_array=np.array([(0, 0)], dtype=bwp.INDICES_DTYPE),
+    )
+    mm = MappedMatrix(
+        packages=[s, t],
+        matrix='foo',
+    )
+    for _ in range(10):
+        next(mm)
