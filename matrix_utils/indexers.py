@@ -22,31 +22,42 @@ class RandomIndexer(Generator, Indexer):
     seed: Seed for RNG. Optional."""
 
     def __init__(self, seed: Union[int, None] = None):
-        super().__init__(PCG64(seed))
-        next(self)
+        self.seed = seed
+        self.reset()
 
     def __next__(self):
         self.index = self.integers(0, MAX_SIGNED_32BIT_INT)
         return self.index
 
+    def reset(self):
+        super().__init__(PCG64(self.seed))
+        next(self)
+
 
 class SequentialIndexer(Indexer):
-    def __init__(self):
-        self.index = 0
+    def __init__(self, offset: int=0):
+        self.reset(offset=offset)
 
     def __next__(self):
         self.index += 1
         return self.index
 
+    def reset(self, offset=0):
+        self.index = offset
+
 
 class CombinatorialIndexer(Indexer):
     def __init__(self, max_values: List[int]):
-        self.iterator = product(*[range(x) for x in max_values])
-        next(self)
+        self.max_values = max_values
+        self.reset()
 
     def __next__(self):
         self.index = next(self.iterator)
         return self.index
+
+    def reset(self):
+        self.iterator = product(*[range(x) for x in self.max_values])
+        next(self)
 
 
 class Proxy:
@@ -59,3 +70,6 @@ class Proxy:
     @property
     def index(self):
         return self.indexer.index[self.offset]
+
+    def reset(self):
+        self.indexer.reset()
