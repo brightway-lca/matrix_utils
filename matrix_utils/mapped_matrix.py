@@ -152,6 +152,13 @@ class MappedMatrix:
             if hasattr(obj, "indexer") and self.packages[obj]:
                 next(obj.indexer)
 
+    def reset_indexers(self, rebuild=False):
+        for obj in self.packages:
+            if hasattr(obj, "indexer"):
+                obj.indexer.reset()
+        if rebuild:
+            self.rebuild_matrix()
+
     def rebuild_matrix(self):
         self.matrix.data *= 0
         for group in self.groups:

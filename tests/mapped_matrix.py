@@ -184,6 +184,51 @@ def test_existing_indexer():
     assert np.allclose(mm.matrix.toarray(), [[2, 10], [0, 6]])
 
 
+def test_reset_indexers():
+    s = bwp.create_datapackage(sequential=True)
+    s.add_persistent_array(
+        matrix="foo",
+        data_array=np.arange(12).reshape(3, 4),
+        indices_array=np.array([(0, 0), (1, 1), (0, 1)], dtype=bwp.INDICES_DTYPE),
+    )
+    mm = MappedMatrix(
+        packages=[s],
+        matrix="foo",
+        use_arrays=True,
+        use_distributions=False,
+    )
+    assert np.allclose(mm.matrix.toarray(), [[0, 8], [0, 4]])
+    next(mm)
+    assert np.allclose(mm.matrix.toarray(), [[1, 9], [0, 5]])
+    next(mm)
+    assert np.allclose(mm.matrix.toarray(), [[2, 10], [0, 6]])
+    next(mm)
+    mm.reset_indexers()
+    next(mm)
+    assert np.allclose(mm.matrix.toarray(), [[1, 9], [0, 5]])
+
+
+def test_reset_indexers_rebuild():
+    s = bwp.create_datapackage(sequential=True)
+    s.add_persistent_array(
+        matrix="foo",
+        data_array=np.arange(12).reshape(3, 4),
+        indices_array=np.array([(0, 0), (1, 1), (0, 1)], dtype=bwp.INDICES_DTYPE),
+    )
+    mm = MappedMatrix(
+        packages=[s],
+        matrix="foo",
+        use_arrays=True,
+        use_distributions=False,
+    )
+    assert np.allclose(mm.matrix.toarray(), [[0, 8], [0, 4]])
+    next(mm)
+    assert np.allclose(mm.matrix.toarray(), [[1, 9], [0, 5]])
+    next(mm)
+    mm.reset_indexers(rebuild=True)
+    assert np.allclose(mm.matrix.toarray(), [[0, 8], [0, 4]])
+
+
 @pytest.fixture
 def sensitivity_dps():
     class VectorInterface:
