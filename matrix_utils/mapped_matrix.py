@@ -148,7 +148,7 @@ class MappedMatrix:
 
     def iterate_indexers(self):
         for obj in self.packages:
-            # Avoid ``StopIIteration`` errors if packaged is filtered to emptiness
+            # Avoid ``StopIteration`` errors if packaged is filtered to emptiness
             if hasattr(obj, "indexer") and self.packages[obj]:
                 next(obj.indexer)
 
