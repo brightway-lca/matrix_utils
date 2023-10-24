@@ -12,30 +12,6 @@ from .utils import filter_groups_for_packages, safe_concatenate_indices
 
 
 class MappedMatrix:
-    """A scipy sparse matrix handler which takes in ``bw_processing`` data packages. Row and column ids are mapped to matrix indices, and a matrix is constructed.
-
-    `indexer_override` allows for custom indexer behaviour. Indexers should follow a simple API: they must support `.__next__()`, and have the attribute `.index`, which returns an integer.
-
-    `custom_filter` allows you to remove some data based on their indices. It is applied to all resource groups. If you need more fine-grained control, process the matrix after construction/iteration. `custom_filter` should take the indices array as an input, and return a Numpy boolean array with the same length as the indices array.
-
-    Args:
-
-        * packages: A list of Ddatapackage objects.
-        * matrix: The string identifying the matrix to be built.
-        * use_vectors: Flag to use vector data from datapackages
-        * use_arrays: Flag to use array data from datapackages
-        * use_distributions: Flag to use `stats_arrays` distribution data from datapackages
-        * row_mapper: Optional instance of `ArrayMapper`. Used when matrices must align.
-        * col_mapper: Optional instance of `ArrayMapper`. Used when matrices must align.
-        * seed_override: Optional integer. Overrides the RNG seed given in the datapackage, if any.
-        * indexer_override: Parameter for custom indexers. See above.
-        * diagonal: If True, only use the `row` indices to build a diagonal matrix.
-        * transpose: Transpose row and column indices. Happens before any processing, so filters and mappers should refer to the transposed dimensions.
-        * custom_filter: Callable for function to filter data based on `indices` values. See above.
-        * empty_ok: If False, raise `AllArraysEmpty` if the matrix would be empty
-
-    """
-
     def __init__(
         self,
         *,
@@ -53,6 +29,42 @@ class MappedMatrix:
         custom_filter: Optional[Callable] = None,
         empty_ok: bool = False,
     ):
+        """A scipy sparse matrix handler which takes in ``bw_processing`` data packages. Row and column ids are mapped to matrix indices, and a matrix is constructed.
+
+        `indexer_override` allows for custom indexer behaviour. Indexers should follow a simple API: they must support `.__next__()`, and have the attribute `.index`, which returns an integer.
+
+        `custom_filter` allows you to remove some data based on their indices. It is applied to all resource groups. If you need more fine-grained control, process the matrix after construction/iteration. `custom_filter` should take the indices array as an input, and return a Numpy boolean array with the same length as the indices array.
+
+        Parameters
+        ----------
+        packages : list[Datapackage]
+            A list of Datapackage objects.
+        matrix : str
+            The string identifying the matrix to be built.
+        use_vectors : bool
+            Flag to use vector data from datapackages
+        use_arrays : bool
+            Flag to use array data from datapackages
+        use_distributions : bool
+            Flag to use `stats_arrays` distribution data from datapackages
+        row_mapper : ArrayMapper
+            Used when matrices must align to an existing mapping.
+        col_mapper :
+            Used when matrices must align to an existing mapping.
+        seed_override : int
+            Overrides the RNG seed given in the datapackage, if any.
+        indexer_override : Any
+            Parameter for custom indexers. See above.
+        diagonal : bool
+            If `True`, only use the `row` indices to build a diagonal matrix.
+        transpose : bool
+            Transpose row and column indices. Happens before any processing, so filters and mappers should refer to the transposed dimensions.
+        custom_filter : Callable
+            Callable for function to filter data based on `indices` values. See above.
+        empty_ok : bool
+            If False, raise `AllArraysEmpty` if the matrix would be empty
+
+        """
         self.seed_override = seed_override
         self.diagonal = diagonal
         self.matrix_label = matrix
