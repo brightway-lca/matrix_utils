@@ -1,4 +1,4 @@
-from typing import Any, Callable, Optional, Sequence, List
+from typing import Any, Callable, List, Optional, Sequence
 
 import numpy as np
 from bw_processing import INDICES_DTYPE, UNCERTAINTY_DTYPE, Datapackage
@@ -12,30 +12,6 @@ from .utils import filter_groups_for_packages, safe_concatenate_indices
 
 
 class MappedMatrix:
-    """A scipy sparse matrix handler which takes in ``bw_processing`` data packages. Row and column ids are mapped to matrix indices, and a matrix is constructed.
-
-    `indexer_override` allows for custom indexer behaviour. Indexers should follow a simple API: they must support `.__next__()`, and have the attribute `.index`, which returns an integer.
-
-    `custom_filter` allows you to remove some data based on their indices. It is applied to all resource groups. If you need more fine-grained control, process the matrix after construction/iteration. `custom_filter` should take the indices array as an input, and return a Numpy boolean array with the same length as the indices array.
-
-    Args:
-
-        * packages: A list of Ddatapackage objects.
-        * matrix: The string identifying the matrix to be built.
-        * use_vectors: Flag to use vector data from datapackages
-        * use_arrays: Flag to use array data from datapackages
-        * use_distributions: Flag to use `stats_arrays` distribution data from datapackages
-        * row_mapper: Optional instance of `ArrayMapper`. Used when matrices must align.
-        * col_mapper: Optional instance of `ArrayMapper`. Used when matrices must align.
-        * seed_override: Optional integer. Overrides the RNG seed given in the datapackage, if any.
-        * indexer_override: Parameter for custom indexers. See above.
-        * diagonal: If True, only use the `row` indices to build a diagonal matrix.
-        * transpose: Transpose row and column indices. Happens before any processing, so filters and mappers should refer to the transposed dimensions.
-        * custom_filter: Callable for function to filter data based on `indices` values. See above.
-        * empty_ok: If False, raise `AllArraysEmpty` if the matrix would be empty
-
-    """
-
     def __init__(
         self,
         *,
@@ -53,6 +29,51 @@ class MappedMatrix:
         custom_filter: Optional[Callable] = None,
         empty_ok: bool = False,
     ):
+        """A scipy sparse matrix handler which takes in ``bw_processing`` data
+        packages. Row and column ids are mapped to matrix indices, and a matrix is
+        constructed.
+
+        `indexer_override` allows for custom indexer behaviour. Indexers should follow
+        a simple API: they must support `.__next__()`, and have the attribute `.index`,
+         which returns an integer.
+
+        `custom_filter` allows you to remove some data based on their indices. It is
+        applied to all resource groups. If you need more fine-grained control, process
+        the matrix after construction/iteration. `custom_filter` should take the
+        indices array as an input, and return a Numpy boolean array with the same
+        length as the indices array.
+
+        Parameters
+        ----------
+        packages : list[Datapackage]
+            A list of Datapackage objects.
+        matrix : str
+            The string identifying the matrix to be built.
+        use_vectors : bool
+            Flag to use vector data from datapackages
+        use_arrays : bool
+            Flag to use array data from datapackages
+        use_distributions : bool
+            Flag to use `stats_arrays` distribution data from datapackages
+        row_mapper : ArrayMapper
+            Used when matrices must align to an existing mapping.
+        col_mapper :
+            Used when matrices must align to an existing mapping.
+        seed_override : int
+            Overrides the RNG seed given in the datapackage, if any.
+        indexer_override : Any
+            Parameter for custom indexers. See above.
+        diagonal : bool
+            If `True`, only use the `row` indices to build a diagonal matrix.
+        transpose : bool
+            Transpose row and column indices. Happens before any processing, so filters
+            and mappers should refer to the transposed dimensions.
+        custom_filter : Callable
+            Callable for function to filter data based on `indices` values. See above.
+        empty_ok : bool
+            If False, raise `AllArraysEmpty` if the matrix would be empty
+
+        """
         self.seed_override = seed_override
         self.diagonal = diagonal
         self.matrix_label = matrix
@@ -79,9 +100,10 @@ class MappedMatrix:
         for package in self.packages:
             if package.dehydrated_interfaces():
                 raise EmptyInterface(
-                    "Dehydrated interfaces {} in package {} need to be rehydrated to be used in matrix calculations".format(
-                        package.dehydrated_interfaces(), package
-                    )
+                    (
+                        "Dehydrated interfaces {} in package {} need to be rehydrated "
+                        + "to be used in matrix calculations"
+                    ).format(package.dehydrated_interfaces(), package)
                 )
 
         self.groups = tuple([obj for lst in self.packages.values() for obj in lst])
@@ -146,20 +168,20 @@ class MappedMatrix:
         for group in self.groups:
             group.map_indices(diagonal=self.diagonal)
 
-    def iterate_indexers(self):
+    def iterate_indexers(self) -> None:
         for obj in self.packages:
             # Avoid ``StopIteration`` errors if packaged is filtered to emptiness
             if hasattr(obj, "indexer") and self.packages[obj]:
                 next(obj.indexer)
 
-    def reset_indexers(self, rebuild=False):
+    def reset_indexers(self, rebuild=False) -> None:
         for obj in self.packages:
             if hasattr(obj, "indexer"):
                 obj.indexer.reset()
         if rebuild:
             self.rebuild_matrix()
 
-    def rebuild_matrix(self):
+    def rebuild_matrix(self) -> None:
         self.matrix.data *= 0
         for group in self.groups:
             row, col, data = group.calculate()
@@ -168,11 +190,11 @@ class MappedMatrix:
             else:
                 self.matrix[row, col] = data
 
-    def __next__(self):
+    def __next__(self) -> None:
         self.iterate_indexers()
         self.rebuild_matrix()
 
-    def add_indexers(self, indexer_override: Any, seed_override: Optional[int]):
+    def add_indexers(self, indexer_override: Any, seed_override: Optional[int]) -> None:
         """Add indexers"""
         for package, resources in self.packages.items():
             if hasattr(package, "indexer"):
@@ -217,16 +239,23 @@ class MappedMatrix:
         return array
 
     def input_provenance(self) -> List[tuple]:
-        """Describe where the data in the other ``input_X`` comes from. Returns a list of ``(datapackage, group_label, (start_index, end_index))`` tuples.
+        """Describe where the data in the other ``input_X`` comes from. Returns a list
+        of ``(datapackage, group_label, (start_index, end_index))`` tuples.
 
-        Note that the ``end_index`` is exclusive, following the Python slicing convention, i.e. ``(7, 9)`` means start from the 8th element (indices start from 0), and go up to but don't include the 10th element (i.e. (7, 9) has two elements)."""
+        Note that the ``end_index`` is exclusive, following the Python slicing
+        convention, i.e. ``(7, 9)`` means start from the 8th element (indices start
+        from 0), and go up to but don't include the 10th element (i.e. (7, 9) has two
+        elements).
+        """
         position, result = 0, []
 
         for package, groups in self.packages.items():
             for group in groups:
                 num_elements = len(group.data_current)
                 # Minus one because we include the first element as element 0
-                result.append((package, group.label, (position, position + num_elements)))
+                result.append(
+                    (package, group.label, (position, position + num_elements))
+                )
                 # Plus one because start at the next value
                 position += num_elements
         return result
@@ -259,15 +288,27 @@ class MappedMatrix:
     def input_uncertainties(self, number_samples: Optional[int] = None) -> np.ndarray:
         """Return the stacked uncertainty arrays of all resources groups.
 
-        Note that this data is masked with both the custom filter (if present) and the mapping mask!
+        Note that this data is masked with both the custom filter (if present) and the
+        mapping mask!
 
-        If the resource group has a distributions array, then this is returned. Otherwise, if the data is static, a distributions array with uncertainty type 0 (undefined uncertainty) is constructed. If the data is an array, an estimate of the mean and standard deviation are given in the ``loc`` and ``scale`` columns. This estimate uses ``number_samples`` columns, or all columns if ``number_samples`` is ``None``.
+        If the resource group has a distributions array, then this is returned.
+        Otherwise, if the data is static, a distributions array with uncertainty type
+        0 (undefined uncertainty) is constructed. If the data is an array, an estimate
+        of the mean and standard deviation are given in the ``loc`` and ``scale``
+        columns. This estimate uses ``number_samples`` columns, or all columns if
+        ``number_samples`` is ``None``.
 
-        If the data comes from an interface, a distributions array with uncertainty type 0 will be created. Regardless if whether it is a vector or an array interface, the current data vector is used, and no estimate of uncertainty is made. Therefore, this data will never consume new data from an interface.
+        If the data comes from an interface, a distributions array with uncertainty
+        type 0 will be created. Regardless if whether it is a vector or an array
+        interface, the current data vector is used, and no estimate of uncertainty is
+        made. Therefore, this data will never consume new data from an interface.
 
-        Raises a ``TypeError`` if distributions arrays are present but don't follow the dtype of ``bw_processing.UNCERTAINTY_DTYPE``.
+        Raises a ``TypeError`` if distributions arrays are present but don't follow the
+        dtype of ``bw_processing.UNCERTAINTY_DTYPE``.
 
-        As both population samples (arrays) and interfaces don't fit into the traditional ``stat_arrays`` framework, we mark these with custom ``uncertainty_types``:
+        As both population samples (arrays) and interfaces don't fit into the
+        traditional ``stat_arrays`` framework, we mark these with custom
+        ``uncertainty_types``:
 
         * ``98`` for arrays
         * ``99`` for interfaces
@@ -278,11 +319,11 @@ class MappedMatrix:
         for group in self.groups:
             if group.has_distributions and self.use_distributions:
                 if group.data_original.dtype != UNCERTAINTY_DTYPE:
-                    raise TypeError(
-                        "Distributions datatype should be `bw_processing.UNCERTAINTY_DTYPE`, but was {}".format(
-                            group.data_original.dtype
-                        )
+                    message = (
+                        "Distributions datatype should be "
+                        "`bw_processing.UNCERTAINTY_DTYPE`, but was {}"
                     )
+                    raise TypeError(message.format(group.data_original.dtype))
                 arrays.append(group.apply_masks(group.data_original))
             elif group.is_array() and not group.is_interface():
                 data = group.data_original

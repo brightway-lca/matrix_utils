@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.3.DEV]
+
+* Add `MappedMatrixDict` class for `MultiLCA`
+
 ### [0.2.5] - 2022-05-21
 
 * Add functions to reset indexers directly and on `MappedMatrix`
