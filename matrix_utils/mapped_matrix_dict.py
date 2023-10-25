@@ -85,7 +85,11 @@ class MappedMatrixDict(Mapping):
         self.transpose = transpose
         self.custom_filter = custom_filter
         self.empty_ok = empty_ok
-        self.global_indexer = self.get_global_indexer(indexer_override=indexer_override, sequential=sequential, seed_override=seed_override)
+        self.global_indexer = self.get_global_indexer(
+            indexer_override=indexer_override,
+            sequential=sequential,
+            seed_override=seed_override,
+        )
         self.matrices = {
             obj: MappedMatrix(
                 packages=packages,
@@ -120,7 +124,9 @@ class MappedMatrixDict(Mapping):
         for mm in self.matrices.values():
             mm.rebuild_matrix()
 
-    def get_global_indexer(self, indexer_override: Any, sequential: bool, seed_override: Optional[int]) -> Indexer:
+    def get_global_indexer(
+        self, indexer_override: Any, sequential: bool, seed_override: Optional[int]
+    ) -> Indexer:
         if indexer_override is not None:
             return indexer_override
         elif sequential:
