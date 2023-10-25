@@ -5,15 +5,10 @@ from bw_processing import Datapackage
 
 from .array_mapper import ArrayMapper
 from .mapped_matrix import MappedMatrix
+from .indexers import RandomIndexer, SequentialIndexer, Indexer
 
 
 class MappedMatrixDict(Mapping):
-    """Class which handles a list of mapped matrices.
-
-    The matrices have the same dimensions, the same lookup dictionaries, and the same
-    indexer.
-    """
-
     def __init__(
         self,
         *,
@@ -30,9 +25,22 @@ class MappedMatrixDict(Mapping):
         transpose: bool = False,
         custom_filter: Optional[Callable] = None,
         empty_ok: bool = False,
+        sequential: bool = False,
     ):
-        """A thin wrapper around a list of `MappedMatrix` objects. See its docstring
+        """A thin wrapper around a dict of `MappedMatrix` objects. See its docstring
         for details on `custom_filter` and `indexer_override`.
+
+        The matrices have the same dimensions, the same lookup dictionaries, and the
+        same indexer.
+
+        The number of possible configurations of resource groups and indexers is far
+        higher than any generic class can handle. This class supports either
+        sequential or random indexing, and the indexing is applied to **all resource
+        groups and datapackages**. If you need finer-grained control, you can access
+        set and access the individual resource group `indexer` attributes.
+
+        Because the same indexer is used for all datapackages, individual `seed` values
+        are ignored. Use `seed_override` to set a global RNG seed.
 
         Parameters
         ----------
@@ -64,10 +72,22 @@ class MappedMatrixDict(Mapping):
             Callable for function to filter data based on `indices` values. See above.
         empty_ok : bool
             If False, raise `AllArraysEmpty` if the matrix would be empty
-
+        sequential : bool
+            Use the **same sequential indexer** across all resource groups in all datapackages
         """
+        self.matrix = matrix
+        self.row_mapper = row_mapper
+        self.col_mapper = col_mapper
+        self.use_vectors = use_vectors
+        self.use_arrays = use_arrays
+        self.seed_override = seed_override
+        self.diagonal = diagonal
+        self.transpose = transpose
+        self.custom_filter = custom_filter
+        self.empty_ok = empty_ok
+        self.global_indexer = self.get_global_indexer(indexer_override=indexer_override, sequential=sequential, seed_override=seed_override)
         self.matrices = {
-            tpl: MappedMatrix(
+            obj: MappedMatrix(
                 packages=packages,
                 matrix=matrix,
                 use_vectors=use_vectors,
@@ -76,24 +96,34 @@ class MappedMatrixDict(Mapping):
                 row_mapper=row_mapper,
                 col_mapper=col_mapper,
                 seed_override=seed_override,
-                indexer_override=None,
+                indexer_override=self.global_indexer,
                 diagonal=diagonal,
                 transpose=transpose,
                 custom_filter=custom_filter,
                 empty_ok=empty_ok,
             )
-            for tpl, packages in packages.items()
+            for obj, packages in packages.items()
         }
 
     def __getitem__(self, key: Union[tuple, str]) -> MappedMatrix:
         return self.matrices[key]
 
     def __iter__(self):
-        for tpl in self.matrices:
-            return self.matrices[tpl]
+        for obj in self.matrices:
+            return self.matrices[obj]
 
     def __len__(self) -> int:
         return len(self.matrices)
 
     def __next__(self) -> None:
-        pass
+        next(self.global_indexer)
+        for mm in self.matrices.values():
+            mm.rebuild_matrix()
+
+    def get_global_indexer(self, indexer_override: Any, sequential: bool, seed_override: Optional[int]) -> Indexer:
+        if indexer_override is not None:
+            return indexer_override
+        elif sequential:
+            return SequentialIndexer()
+        else:
+            return RandomIndexer(seed=seed_override)
