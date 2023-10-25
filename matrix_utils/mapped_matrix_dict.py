@@ -4,8 +4,8 @@ from typing import Any, Callable, Optional, Sequence, Union
 from bw_processing import Datapackage
 
 from .array_mapper import ArrayMapper
+from .indexers import Indexer, RandomIndexer, SequentialIndexer
 from .mapped_matrix import MappedMatrix
-from .indexers import RandomIndexer, SequentialIndexer, Indexer
 
 
 class MappedMatrixDict(Mapping):
@@ -42,6 +42,10 @@ class MappedMatrixDict(Mapping):
         Because the same indexer is used for all datapackages, individual `seed` values
         are ignored. Use `seed_override` to set a global RNG seed.
 
+        The `empty_ok` flag applies to **all matrices** - if any of the matrices have
+        a valid data value no error will be raised. In practice this flag should have
+        no effect for `MappedMatrixDict` unless the input data is very broken.
+
         Parameters
         ----------
         packages : dict[Union[tuple, str], Sequence[Datapackage]]
@@ -73,7 +77,8 @@ class MappedMatrixDict(Mapping):
         empty_ok : bool
             If False, raise `AllArraysEmpty` if the matrix would be empty
         sequential : bool
-            Use the **same sequential indexer** across all resource groups in all datapackages
+            Use the **same sequential indexer** across all resource groups in all
+            datapackages
         """
         self.matrix = matrix
         self.row_mapper = row_mapper
@@ -90,8 +95,12 @@ class MappedMatrixDict(Mapping):
             sequential=sequential,
             seed_override=seed_override,
         )
+
+        if not isinstance(packages, Mapping):
+            raise ValueError("`packages` must be a dictionary")
+
         self.matrices = {
-            obj: MappedMatrix(
+            key: MappedMatrix(
                 packages=packages,
                 matrix=matrix,
                 use_vectors=use_vectors,
@@ -106,15 +115,14 @@ class MappedMatrixDict(Mapping):
                 custom_filter=custom_filter,
                 empty_ok=empty_ok,
             )
-            for obj, packages in packages.items()
+            for key, packages in packages.items()
         }
 
-    def __getitem__(self, key: Union[tuple, str]) -> MappedMatrix:
+    def __getitem__(self, key: Any) -> MappedMatrix:
         return self.matrices[key]
 
     def __iter__(self):
-        for obj in self.matrices:
-            return self.matrices[obj]
+        yield from self.matrices
 
     def __len__(self) -> int:
         return len(self.matrices)
