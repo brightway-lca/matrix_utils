@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.3.DEV]
+## [0.3] - 2023-10-25
 
 * Add `MappedMatrixDict` class for `MultiLCA`
 
