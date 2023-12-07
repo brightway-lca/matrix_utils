@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.4] - 2023-12-07
+
+* Add `SparseMatrixDict`
+* Defined matrix multiplication for `MappedMatrixDict`
+
 ## [0.3] - 2023-10-25
 
 * Add `MappedMatrixDict` class for `MultiLCA`
