@@ -2,10 +2,33 @@ from collections.abc import Mapping
 from typing import Any, Callable, Optional, Sequence, Union
 
 from bw_processing import Datapackage
+from scipy import sparse
 
 from .array_mapper import ArrayMapper
 from .indexers import Indexer, RandomIndexer, SequentialIndexer
 from .mapped_matrix import MappedMatrix
+
+
+class SparseMatrixDict(dict):
+    """Instantiate with `SparseMatrixDict({"label": sparse_matrix})`"""
+
+    def __matmul__(self, other):
+        """Define logic for `@` matrix multiplication operator.
+
+        Note that the sparse matrix dict must come first, i.e. `SparseMatrixDict @ other`.
+        """
+        if isinstance(other, SparseMatrixDict):
+            return SparseMatrixDict(
+                {(a, b): c @ d for a, c in self.items() for b, d in other.items()}
+            )
+        if isinstance(other, MappedMatrixDict):
+            return SparseMatrixDict(
+                {(a, b): c @ d.matrix for a, c in self.items() for b, d in other.items()}
+            )
+        elif sparse.base.issparse(other):
+            return SparseMatrixDict({a: b @ other for a, b in self.items()})
+        else:
+            raise TypeError(f"Can't understand matrix multiplication for type {type(other)}")
 
 
 class MappedMatrixDict(Mapping):
@@ -141,3 +164,17 @@ class MappedMatrixDict(Mapping):
             return SequentialIndexer()
         else:
             return RandomIndexer(seed=seed_override)
+
+    def __matmul__(self, other):
+        """Define logic for `@` matrix multiplication operator.
+
+        A `MappedMatrixDict` can only be multiplied by a sparse matrix; no other type is supported.
+
+        Note that the mapped matrix dict must come first, i.e. `MappedMatrixDict @ other`.
+        """
+        if sparse.base.issparse(other):
+            return SparseMatrixDict(
+                [(key, value.matrix @ other) for key, value in self.matrices.items()]
+            )
+        else:
+            raise TypeError(f"Can't understand matrix multiplication for type {type(other)}")

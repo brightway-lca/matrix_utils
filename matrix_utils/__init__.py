@@ -1,13 +1,14 @@
 __all__ = (
     "__version__",
-    "ResourceGroup",
     "ArrayMapper",
+    "CombinatorialIndexer",
     "MappedMatrix",
     "MappedMatrixDict",
-    "RandomIndexer",
-    "SequentialIndexer",
-    "CombinatorialIndexer",
     "Proxy",
+    "RandomIndexer",
+    "ResourceGroup",
+    "SequentialIndexer",
+    "SparseMatrixDict",
 )
 
 __version__ = "0.3.dev1"
@@ -15,5 +16,5 @@ __version__ = "0.3.dev1"
 from .array_mapper import ArrayMapper
 from .indexers import CombinatorialIndexer, Proxy, RandomIndexer, SequentialIndexer
 from .mapped_matrix import MappedMatrix
-from .mapped_matrix_dict import MappedMatrixDict
+from .mapped_matrix_dict import MappedMatrixDict, SparseMatrixDict
 from .resource_group import ResourceGroup

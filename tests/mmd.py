@@ -1,8 +1,10 @@
 import bw_processing as bwp
 import numpy as np
 import pytest
+from scipy.sparse import csr_matrix
+from scipy.sparse.base import issparse
 
-from matrix_utils import ArrayMapper, MappedMatrix, MappedMatrixDict
+from matrix_utils import ArrayMapper, MappedMatrix, MappedMatrixDict, SparseMatrixDict
 from matrix_utils.errors import AllArraysEmpty
 from matrix_utils.indexers import RandomIndexer, SequentialIndexer
 
@@ -34,26 +36,18 @@ def mmd_fixture():
     fourth.add_persistent_array(
         matrix="foo",
         name="array",
-        indices_array=np.array(
-            [(1, 0), (2, 1), (5, 1), (8, 1)], dtype=bwp.INDICES_DTYPE
-        ),
+        indices_array=np.array([(1, 0), (2, 1), (5, 1), (8, 1)], dtype=bwp.INDICES_DTYPE),
         data_array=np.arange(8).reshape((4, 2)) + 10,
     )
     fifth = bwp.create_datapackage()
     fifth.add_persistent_array(
         matrix="foo",
         name="array",
-        indices_array=np.array(
-            [(1, 0), (12, 11), (5, 1), (18, 11)], dtype=bwp.INDICES_DTYPE
-        ),
+        indices_array=np.array([(1, 0), (12, 11), (5, 1), (18, 11)], dtype=bwp.INDICES_DTYPE),
         data_array=np.arange(20).reshape((4, 5)),
     )
-    row_mapper = ArrayMapper(
-        array=np.array([0, 2, 10, 12, 0, 2, 1, 2, 5, 8, 1, 12, 5, 18])
-    )
-    col_mapper = ArrayMapper(
-        array=np.array([0, 1, 10, 11, 10, 11, 0, 1, 1, 1, 0, 11, 1, 11])
-    )
+    row_mapper = ArrayMapper(array=np.array([0, 2, 10, 12, 0, 2, 1, 2, 5, 8, 1, 12, 5, 18]))
+    col_mapper = ArrayMapper(array=np.array([0, 1, 10, 11, 10, 11, 0, 1, 1, 1, 0, 11, 1, 11]))
     return first, second, third, fourth, fifth, row_mapper, col_mapper
 
 
@@ -248,3 +242,114 @@ def test_mmd_invalid_packages(mmd_fixture):
             col_mapper=cols,
             use_arrays=True,
         )
+
+
+def test_mmd_multiplication(mmd_fixture):
+    first, second, third, fourth, fifth, rows, cols = mmd_fixture
+    mmd = MappedMatrixDict(
+        packages={"a": [first, second], "b": [third, fourth], "c": [fifth]},
+        matrix="foo",
+        row_mapper=rows,
+        col_mapper=cols,
+        use_arrays=True,
+        sequential=True,
+    )
+
+    row = np.array([0, 1, 2, 3, 0])
+    col = np.array([0, 1, 1, 2, 0])
+    data = np.array([1, 2, 4, 8, 16])
+    mat = csr_matrix((data, (row, col)), shape=(4, 3))
+
+    result = mmd @ mat
+    assert isinstance(result, SparseMatrixDict)
+    for key, value in result.items():
+        assert key in "abc"
+        assert issparse(value)
+
+
+def test_sparse_matrix_dict_smd_mmd_multiplication(mmd_fixture):
+    first, second, third, fourth, fifth, rows, cols = mmd_fixture
+    mmd = MappedMatrixDict(
+        packages={"a": [first, second], "b": [third, fourth], "c": [fifth]},
+        matrix="foo",
+        row_mapper=rows,
+        col_mapper=cols,
+        use_arrays=True,
+        sequential=True,
+    )
+
+    row = np.array([0, 1, 2, 3, 0])
+    col = np.array([0, 1, 1, 2, 0])
+    data = np.array([1, 2, 4, 8, 16])
+    mat = csr_matrix((data, (row, col)), shape=(4, 8))
+
+    result = SparseMatrixDict({"1": mat}) @ mmd
+    assert isinstance(result, SparseMatrixDict)
+    for key, value in result.items():
+        assert key in (("1", "a"), ("1", "b"), ("1", "c"))
+        assert issparse(value)
+
+
+def test_sparse_matrix_dict_smd_smd_multiplication():
+    row = np.array([0, 1, 2, 0])
+    col = np.array([0, 1, 1, 0])
+    data = np.array([1, 2, 4, 8])
+    mat1 = csr_matrix((data, (row, col)), shape=(3, 3))
+
+    row = np.array([0, 1, 2])
+    col = np.array([0, 1, 1])
+    data = np.array([2, 2, 2])
+    mat2 = csr_matrix((data, (row, col)), shape=(3, 2))
+
+    total = 9 * 2 + 2 * 2 + 2 * 4
+
+    result = SparseMatrixDict({"a": mat1}) @ SparseMatrixDict({"b": mat2})
+    assert isinstance(result, SparseMatrixDict)
+    assert ("a", "b") in result
+    assert result[("a", "b")].shape == (3, 2)
+    assert result[("a", "b")].sum() == total
+
+
+def test_sparse_matrix_dict_smd_matrix_multiplication():
+    row = np.array([0, 1, 2, 0])
+    col = np.array([0, 1, 1, 0])
+    data = np.array([1, 2, 4, 8])
+    mat1 = csr_matrix((data, (row, col)), shape=(3, 3))
+
+    row = np.array([0, 1, 2])
+    col = np.array([0, 1, 1])
+    data = np.array([2, 2, 2])
+    mat2 = csr_matrix((data, (row, col)), shape=(3, 2))
+
+    total = 9 * 2 + 2 * 2 + 2 * 4
+
+    result = SparseMatrixDict({"a": mat1}) @ mat2
+    assert isinstance(result, SparseMatrixDict)
+    assert "a" in result
+    assert result["a"].shape == (3, 2)
+    assert result["a"].sum() == total
+
+
+def test_sparse_matrix_dict_matrix_smd_multiplication_error():
+    row = np.array([0, 1, 2, 0])
+    col = np.array([0, 1, 1, 0])
+    data = np.array([1, 2, 4, 8])
+    mat1 = csr_matrix((data, (row, col)), shape=(3, 3))
+
+    row = np.array([0, 1, 2])
+    col = np.array([0, 1, 1])
+    data = np.array([2, 2, 2])
+    mat2 = csr_matrix((data, (row, col)), shape=(3, 2))
+
+    with pytest.raises(TypeError):
+        mat2 @ SparseMatrixDict({"a": mat1})
+
+
+def test_sparse_matrix_dict_multiplication_error_type():
+    row = np.array([0, 1, 2, 0])
+    col = np.array([0, 1, 1, 0])
+    data = np.array([1, 2, 4, 8])
+    mat1 = csr_matrix((data, (row, col)), shape=(3, 3))
+
+    with pytest.raises(TypeError):
+        SparseMatrixDict({"a": mat1}) @ None
