@@ -1,5 +1,9 @@
 # Changelog
 
+### [0.4.1] - 2023-12-18
+
+* Allow passing `MappedMatrix` subclass to `MappedMatrixDict`
+
 ## [0.4] - 2023-12-07
 
 * Add `SparseMatrixDict`
