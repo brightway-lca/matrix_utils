@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any, Callable, Optional, Sequence, Union
+from typing import Any, Callable, Optional, Sequence, Type, Union
 
 from bw_processing import Datapackage
 from scipy import sparse
@@ -49,6 +49,7 @@ class MappedMatrixDict(Mapping):
         custom_filter: Optional[Callable] = None,
         empty_ok: bool = False,
         sequential: bool = False,
+        matrix_class: Type[MappedMatrix] = MappedMatrix,
     ):
         """A thin wrapper around a dict of `MappedMatrix` objects. See its docstring
         for details on `custom_filter` and `indexer_override`.
@@ -102,6 +103,8 @@ class MappedMatrixDict(Mapping):
         sequential : bool
             Use the **same sequential indexer** across all resource groups in all
             datapackages
+        matrix_class : MappedMatrix
+            `MappedMatrix` class to use. Can be a subclass of `MappedMatrix`.
         """
         self.matrix = matrix
         self.row_mapper = row_mapper
@@ -123,7 +126,7 @@ class MappedMatrixDict(Mapping):
             raise ValueError("`packages` must be a dictionary")
 
         self.matrices = {
-            key: MappedMatrix(
+            key: matrix_class(
                 packages=packages,
                 matrix=matrix,
                 use_vectors=use_vectors,

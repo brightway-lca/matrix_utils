@@ -353,3 +353,24 @@ def test_sparse_matrix_dict_multiplication_error_type():
 
     with pytest.raises(TypeError):
         SparseMatrixDict({"a": mat1}) @ None
+
+
+def test_mmd_mm_subclasses(mmd_fixture):
+    class MM(MappedMatrix):
+        pass
+
+    first, second, third, fourth, fifth, rows, cols = mmd_fixture
+    mmd = MappedMatrixDict(
+        packages={"a": [first, second], "b": [third, fourth], "c": [fifth]},
+        matrix="foo",
+        row_mapper=rows,
+        col_mapper=cols,
+        use_arrays=True,
+        matrix_class=MM,
+    )
+
+    assert len(mmd) == 3
+    for key in mmd:
+        mm = mmd[key]
+        assert isinstance(mm, MM)
+        assert isinstance(mm, MappedMatrix)
