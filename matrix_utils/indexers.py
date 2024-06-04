@@ -35,7 +35,7 @@ class RandomIndexer(Generator, Indexer):
 
 
 class SequentialIndexer(Indexer):
-    def __init__(self, offset: int=0):
+    def __init__(self, offset: int = 0):
         self.reset(offset=offset)
 
     def __next__(self):

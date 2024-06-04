@@ -21,11 +21,9 @@ class ArrayMapper:
         In [3]: am.map_array(np.array([6, 6, 3, 0]))
         Out[3]: array([ 2,  2, -1,  0])
 
-    """
+    """  # NOQA: E501
 
-    def __init__(
-        self, *, array: np.ndarray, sparse_cutoff: float = 0.1, empty_ok: bool = False
-    ):
+    def __init__(self, *, array: np.ndarray, sparse_cutoff: float = 0.1, empty_ok: bool = False):
         self._check_input_array(array)
 
         # Even if already unique, this only adds ~2ms for 100.000 elements

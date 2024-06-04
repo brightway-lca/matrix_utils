@@ -51,7 +51,7 @@ class ResourceGroup:
 
     The current data, as entered into the matrix, is given by ``.current_data``.
 
-    """
+    """  # NOQA: E501
 
     def __init__(
         self,
@@ -78,9 +78,7 @@ class ResourceGroup:
 
         if self.use_distributions and self.vector:
             if self.has_distributions:
-                self.rng = MCRandomNumberGenerator(
-                    params=self.data_original, seed=self.seed
-                )
+                self.rng = MCRandomNumberGenerator(params=self.data_original, seed=self.seed)
             else:
                 self.rng = FakeRNG(self.data_original)
 
@@ -88,7 +86,8 @@ class ResourceGroup:
         self.empty = self.get_indices_data().shape == (0,)
 
     def __str__(self):
-        return "ResourceGroup {}\n\tVector: {}\n\tDistributions: {}\n\tTranspose: {}\n\tSeed: {}\n\tCustom filter: {}".format(
+        return """ResourceGroup {}\n\tVector: {}\n\tDistributions: {}\n\tTranspose: {}\n\tSeed: {}
+\tCustom filter: {}""".format(
             self.label,
             self.vector,
             self.use_distributions,
@@ -138,9 +137,7 @@ class ResourceGroup:
 
     def is_interface(self) -> bool:
         """Determine if data is an interface"""
-        return (
-            self.package.get_resource(self.label + ".data")[1]["profile"] == "interface"
-        )
+        return self.package.get_resource(self.label + ".data")[1]["profile"] == "interface"
 
     @property
     def ncols(self):
@@ -156,7 +153,8 @@ class ResourceGroup:
             self.col_mapper = mapper
 
     def build_mask(self, row, col):
-        """Build boolean array mask where ``False`` means that a data element is not present, and should be ignored. See discussion above."""
+        """Build boolean array mask where ``False`` means that a data element is not present, and
+        should be ignored. See discussion above."""
         mask = (row != -1) * (col != -1)
         if (~mask).sum():
             return mask
@@ -205,15 +203,11 @@ class ResourceGroup:
 
     def unique_row_indices_for_mapping(self):
         """Return array of unique indices that respect aggregation policy"""
-        return np.unique(
-            mask_array(self.get_indices_data()["row"], self.custom_filter_mask)
-        )
+        return np.unique(mask_array(self.get_indices_data()["row"], self.custom_filter_mask))
 
     def unique_col_indices_for_mapping(self):
         """Return array of unique indices that respect aggregation policy"""
-        return np.unique(
-            mask_array(self.get_indices_data()["col"], self.custom_filter_mask)
-        )
+        return np.unique(mask_array(self.get_indices_data()["col"], self.custom_filter_mask))
 
     def add_indexer(self, indexer: Indexer):
         self.indexer = indexer
@@ -232,9 +226,12 @@ class ResourceGroup:
         return array
 
     def calculate(self, vector: np.ndarray = None):
-        """Generate row and column indices and a data vector. If ``.data`` is an iterator, draw the next value. If ``.data`` is an array, use the column given by ``.indexer``.
+        """Generate row and column indices and a data vector. If ``.data`` is an iterator, draw the
+        next value. If ``.data`` is an array, use the column given by ``.indexer``.
 
-        ``vector`` is an optional input that overrides the data. It must be in the same order and have the same length as the data package indices (before possible aggregation and masking); see discussion above.
+        ``vector`` is an optional input that overrides the data. It must be in the same order and
+        have the same length as the data package indices (before possible aggregation and masking);
+        see discussion above.
 
         """
         if self.empty:

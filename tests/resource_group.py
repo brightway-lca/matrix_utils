@@ -4,7 +4,7 @@ import numpy as np
 from bw_processing import INDICES_DTYPE, create_datapackage, load_datapackage
 from fs.zipfs import ZipFS
 
-from matrix_utils import ResourceGroup, ArrayMapper
+from matrix_utils import ArrayMapper, ResourceGroup
 from matrix_utils.indexers import SequentialIndexer
 from matrix_utils.utils import safe_concatenate_indices
 
@@ -12,27 +12,31 @@ dirpath = Path(__file__).parent.resolve() / "fixtures"
 
 
 def get_vector_group():
-    return load_datapackage(ZipFS(dirpath / "a-first.zip")).filter_by_attribute(
-        "group", "x-third"
-    ), "x-third"
+    return (
+        load_datapackage(ZipFS(dirpath / "a-first.zip")).filter_by_attribute("group", "x-third"),
+        "x-third",
+    )
 
 
 def get_vector_interface_group():
-    return load_datapackage(ZipFS(dirpath / "a-first.zip")).filter_by_attribute(
-        "group", "w-fourth"
-    ), "w-fourth"
+    return (
+        load_datapackage(ZipFS(dirpath / "a-first.zip")).filter_by_attribute("group", "w-fourth"),
+        "w-fourth",
+    )
 
 
 def get_array_group():
-    return load_datapackage(ZipFS(dirpath / "a-first.zip")).filter_by_attribute(
-        "group", "y-second"
-    ), "y-second"
+    return (
+        load_datapackage(ZipFS(dirpath / "a-first.zip")).filter_by_attribute("group", "y-second"),
+        "y-second",
+    )
 
 
 def get_vector_array_group():
-    return load_datapackage(ZipFS(dirpath / "a-first.zip")).filter_by_attribute(
-        "group", "z-first"
-    ), "z-first"
+    return (
+        load_datapackage(ZipFS(dirpath / "a-first.zip")).filter_by_attribute("group", "z-first"),
+        "z-first",
+    )
 
 
 def get_empty_group():
@@ -43,7 +47,7 @@ def get_empty_group():
         name="b",
         indices_array=np.array([], dtype=INDICES_DTYPE),
     )
-    return dp, 'b'
+    return dp, "b"
 
 
 def complete_group(group):

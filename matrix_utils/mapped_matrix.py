@@ -133,12 +133,8 @@ class MappedMatrix:
             self.add_mappers(axis=1, mapper=self.col_mapper)
         self.map_indices()
 
-        row_indices = safe_concatenate_indices(
-            [obj.row_matrix for obj in self.groups], empty_ok
-        )
-        col_indices = safe_concatenate_indices(
-            [obj.col_matrix for obj in self.groups], empty_ok
-        )
+        row_indices = safe_concatenate_indices([obj.row_matrix for obj in self.groups], empty_ok)
+        col_indices = safe_concatenate_indices([obj.col_matrix for obj in self.groups], empty_ok)
 
         if diagonal:
             x = int(self.row_mapper.index_array.max() + 1)
@@ -215,9 +211,7 @@ class MappedMatrix:
                 for obj in resources:
                     obj.add_indexer(indexer=package.indexer)
             else:
-                package.indexer = RandomIndexer(
-                    seed=seed_override or package.metadata["seed"]
-                )
+                package.indexer = RandomIndexer(seed=seed_override or package.metadata["seed"])
                 for obj in resources:
                     obj.add_indexer(indexer=package.indexer)
 
@@ -253,9 +247,7 @@ class MappedMatrix:
             for group in groups:
                 num_elements = len(group.data_current)
                 # Minus one because we include the first element as element 0
-                result.append(
-                    (package, group.label, (position, position + num_elements))
-                )
+                result.append((package, group.label, (position, position + num_elements)))
                 # Plus one because start at the next value
                 position += num_elements
         return result
@@ -270,9 +262,7 @@ class MappedMatrix:
             elif isinstance(value, tuple):
                 index_values.extend(list(value))
             else:
-                raise ValueError(
-                    f"Can't understand indexer value {value} in package {package}"
-                )
+                raise ValueError(f"Can't understand indexer value {value} in package {package}")
         return np.array(index_values)
 
     def _construct_distributions_array(self, given, uncertainty_type=0) -> np.ndarray:
@@ -330,18 +320,14 @@ class MappedMatrix:
                 if number_samples is not None:
                     data = data[:, :number_samples]
 
-                array = self._construct_distributions_array(
-                    group.data_current, uncertainty_type=98
-                )
+                array = self._construct_distributions_array(group.data_current, uncertainty_type=98)
                 array["loc"] = np.mean(data, axis=1)
                 array["loc"][group.flip] *= -1
                 array["scale"] = np.std(data, axis=1)
                 arrays.append(array)
             elif group.is_interface():
                 arrays.append(
-                    self._construct_distributions_array(
-                        group.data_current, uncertainty_type=99
-                    )
+                    self._construct_distributions_array(group.data_current, uncertainty_type=99)
                 )
             else:
                 arrays.append(self._construct_distributions_array(group.data_current))

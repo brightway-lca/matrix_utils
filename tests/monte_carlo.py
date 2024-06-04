@@ -1,6 +1,5 @@
 import bw_processing as bwp
 import numpy as np
-import pytest
 from stats_arrays import (
     NormalUncertainty,
     TriangularUncertainty,
@@ -68,9 +67,7 @@ def mc_fixture(**kwargs):
     dp.add_persistent_vector(
         matrix="bar",
         name="fourth",
-        indices_array=np.array(
-            [(10, 10), (12, 9), (14, 8), (18, 7)], dtype=bwp.INDICES_DTYPE
-        ),
+        indices_array=np.array([(10, 10), (12, 9), (14, 8), (18, 7)], dtype=bwp.INDICES_DTYPE),
         data_array=np.array([11, 12.3, 14, 125]),
     )
     return dp
@@ -204,9 +201,7 @@ def test_distributions_seed_override():
         results[:, :, i] = mm.matrix.toarray()
 
     dp = mc_fixture(seed=123)
-    mm = mu.MappedMatrix(
-        packages=[dp], matrix="foo", use_distributions=True, seed_override=7
-    )
+    mm = mu.MappedMatrix(packages=[dp], matrix="foo", use_distributions=True, seed_override=7)
 
     first = np.zeros((2, 2, 10))
     first[:, :, 0] = mm.matrix.toarray()
@@ -216,9 +211,7 @@ def test_distributions_seed_override():
         first[:, :, i] = mm.matrix.toarray()
 
     dp = mc_fixture(seed=567)
-    mm = mu.MappedMatrix(
-        packages=[dp], matrix="foo", use_distributions=True, seed_override=7
-    )
+    mm = mu.MappedMatrix(packages=[dp], matrix="foo", use_distributions=True, seed_override=7)
 
     second = np.zeros((2, 2, 10))
     second[:, :, 0] = mm.matrix.toarray()

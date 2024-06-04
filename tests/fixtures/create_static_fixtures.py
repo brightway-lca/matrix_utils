@@ -35,7 +35,8 @@ w-fourth
     vector
     matrix-a
 
-This file creates two datapackages. The values in `b-second` will be the same as in  `a-first`, but incremented by 100.
+This file creates two datapackages. The values in `b-second` will be the same as in  `a-first`, but
+incremented by 100.
 """
 
 
@@ -153,9 +154,7 @@ def create_sensitivity_fixtures():
 
     data_array = np.array([1, 2, 1, 3])
     flip_array = np.array([0, 0, 1, 1], dtype=bool)
-    indices_array = np.array(
-        [(12, 10), (12, 11), (12, 11), (12, 12)], dtype=INDICES_DTYPE
-    )
+    indices_array = np.array([(12, 10), (12, 11), (12, 11), (12, 12)], dtype=INDICES_DTYPE)
     distributions_array = np.zeros((4,), dtype=UNCERTAINTY_DTYPE)
     distributions_array["uncertainty_type"] = (4, 4, 0, 4)
     distributions_array["scale"] = np.NaN

@@ -6,7 +6,7 @@ import pytest
 from fixtures import basic_mm, diagonal
 from fs.zipfs import ZipFS
 
-from matrix_utils import MappedMatrix, ArrayMapper
+from matrix_utils import ArrayMapper, MappedMatrix
 from matrix_utils.errors import AllArraysEmpty, EmptyArray
 
 dirpath = Path(__file__).parent.resolve() / "fixtures"
@@ -752,17 +752,10 @@ def test_all_empty_after_custom_filter():
         indices_array=np.array([(0, 0), (1, 0)], dtype=bwp.INDICES_DTYPE),
     )
     with pytest.raises(EmptyArray):
-        MappedMatrix(
-            packages=[s],
-            matrix="foo",
-            custom_filter=lambda x: x['col'] > 0
-        )
+        MappedMatrix(packages=[s], matrix="foo", custom_filter=lambda x: x["col"] > 0)
 
     assert MappedMatrix(
-        packages=[s],
-        matrix="foo",
-        custom_filter=lambda x: x['col'] > 0,
-        empty_ok=True
+        packages=[s], matrix="foo", custom_filter=lambda x: x["col"] > 0, empty_ok=True
     )
 
 
@@ -778,11 +771,7 @@ def test_one_empty_after_custom_filter():
         data_array=np.arange(10, 12),
         indices_array=np.array([(0, 1), (1, 1)], dtype=bwp.INDICES_DTYPE),
     )
-    mm = MappedMatrix(
-        packages=[s],
-        matrix="foo",
-        custom_filter=lambda x: x['col'] > 0
-    )
+    mm = MappedMatrix(packages=[s], matrix="foo", custom_filter=lambda x: x["col"] > 0)
     assert mm.matrix.sum() == 21
 
 
@@ -842,7 +831,7 @@ def test_empty_combinatorial_datapackage():
     )
     mm = MappedMatrix(
         packages=[s, t],
-        matrix='foo',
+        matrix="foo",
     )
     for _ in range(10):
         next(mm)

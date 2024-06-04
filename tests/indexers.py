@@ -40,6 +40,7 @@ def test_sequential_reset():
         assert next(a) == i
         assert a.index == i
 
+
 def test_combinatorial():
     a = CombinatorialIndexer([4, 2, 3])
     assert a.index == (0, 0, 0)
