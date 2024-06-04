@@ -1,5 +1,9 @@
 # Changelog
 
+### [0.4.3] - 2024-06-04
+
+* Allow `MappedMatrixDict` to take extra `kwargs` for compatiblity with custom matrix classes
+
 ### [0.4.2] - 2024-06-04
 
 * Fix diagonal `MappedMatrixDict` - `col_mapper` is not required
