@@ -7,6 +7,7 @@ from scipy import sparse
 from .array_mapper import ArrayMapper
 from .indexers import Indexer, RandomIndexer, SequentialIndexer
 from .mapped_matrix import MappedMatrix
+from .utils import unroll
 
 
 class SparseMatrixDict(dict):
@@ -19,11 +20,11 @@ class SparseMatrixDict(dict):
         """
         if isinstance(other, SparseMatrixDict):
             return SparseMatrixDict(
-                {(a, b): c @ d for a, c in self.items() for b, d in other.items()}
+                {unroll(a, b): c @ d for a, c in self.items() for b, d in other.items()}
             )
         if isinstance(other, MappedMatrixDict):
             return SparseMatrixDict(
-                {(a, b): c @ d.matrix for a, c in self.items() for b, d in other.items()}
+                {unroll(a, b): c @ d.matrix for a, c in self.items() for b, d in other.items()}
             )
         elif sparse.base.issparse(other):
             return SparseMatrixDict({a: b @ other for a, b in self.items()})

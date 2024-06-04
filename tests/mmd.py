@@ -330,6 +330,26 @@ def test_sparse_matrix_dict_smd_matrix_multiplication():
     assert result["a"].sum() == total
 
 
+def test_sparse_matrix_dict_smd_matrix_multiplication_tuple_unrolling():
+    row = np.array([0, 1, 2, 0])
+    col = np.array([0, 1, 1, 0])
+    data = np.array([1, 2, 4, 8])
+    mat1 = csr_matrix((data, (row, col)), shape=(3, 3))
+
+    row = np.array([0, 1, 2])
+    col = np.array([0, 1, 1])
+    data = np.array([2, 2, 2])
+    mat2 = csr_matrix((data, (row, col)), shape=(3, 2))
+
+    result = SparseMatrixDict({("a", "1"): mat1}) @ SparseMatrixDict({("b", "2"): mat2})
+    assert isinstance(result, SparseMatrixDict)
+    assert (("a", "1"), ("b", "2")) in result
+
+    result = SparseMatrixDict({(("a", "1"), "foo"): mat1}) @ SparseMatrixDict({("b", "2"): mat2})
+    assert isinstance(result, SparseMatrixDict)
+    assert (("a", "1"), "foo", ("b", "2")) in result
+
+
 def test_sparse_matrix_dict_matrix_smd_multiplication_error():
     row = np.array([0, 1, 2, 0])
     col = np.array([0, 1, 1, 0])

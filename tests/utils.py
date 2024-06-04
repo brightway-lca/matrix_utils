@@ -3,7 +3,7 @@ import numpy as np
 import pytest
 
 from matrix_utils.errors import AllArraysEmpty
-from matrix_utils.utils import has_relevant_data, safe_concatenate_indices
+from matrix_utils.utils import has_relevant_data, safe_concatenate_indices, unroll
 
 
 def test_safe_concatenate_indices():
@@ -53,66 +53,53 @@ def create_dp(vector, array, distributions):
         dp.add_persistent_vector(
             matrix="foo",
             name="vector",
-            indices_array=np.array(
-                [(10, 10), (12, 9), (14, 8), (18, 7)], dtype=bwp.INDICES_DTYPE
-            ),
+            indices_array=np.array([(10, 10), (12, 9), (14, 8), (18, 7)], dtype=bwp.INDICES_DTYPE),
             data_array=np.array([11, 12.3, 14, 125]),
         )
     if array:
         dp.add_persistent_array(
             matrix="foo",
             name="array",
-            indices_array=np.array(
-                [(1, 0), (2, 1), (5, 1), (8, 1)], dtype=bwp.INDICES_DTYPE
-            ),
+            indices_array=np.array([(1, 0), (2, 1), (5, 1), (8, 1)], dtype=bwp.INDICES_DTYPE),
             data_array=np.array([[1, 2.3, 4, 25]]).T,
         )
     return dp
 
 
 def test_has_relevant_data_use_vector():
-    assert not has_relevant_data(
-        "vector", create_dp(False, False, False), True, False, False
-    )
-    assert has_relevant_data(
-        "vector", create_dp(True, False, False), True, False, False
-    )
+    assert not has_relevant_data("vector", create_dp(False, False, False), True, False, False)
+    assert has_relevant_data("vector", create_dp(True, False, False), True, False, False)
     assert has_relevant_data("vector", create_dp(True, True, True), True, False, False)
-    assert not has_relevant_data(
-        "distributions", create_dp(False, False, True), True, False, False
-    )
-    assert not has_relevant_data(
-        "array", create_dp(False, True, False), True, False, False
-    )
+    assert not has_relevant_data("distributions", create_dp(False, False, True), True, False, False)
+    assert not has_relevant_data("array", create_dp(False, True, False), True, False, False)
 
 
 def test_has_relevant_data_use_distributions():
     assert not has_relevant_data(
         "distributions", create_dp(False, False, False), False, False, True
     )
-    assert has_relevant_data(
-        "distributions", create_dp(False, False, True), False, False, True
-    )
-    assert has_relevant_data(
-        "distributions", create_dp(True, True, True), False, False, True
-    )
-    assert has_relevant_data(
-        "vector", create_dp(True, False, False), False, False, True
-    )
-    assert not has_relevant_data(
-        "array", create_dp(False, True, False), False, False, True
-    )
+    assert has_relevant_data("distributions", create_dp(False, False, True), False, False, True)
+    assert has_relevant_data("distributions", create_dp(True, True, True), False, False, True)
+    assert has_relevant_data("vector", create_dp(True, False, False), False, False, True)
+    assert not has_relevant_data("array", create_dp(False, True, False), False, False, True)
 
 
 def test_has_relevant_data_use_array():
-    assert not has_relevant_data(
-        "array", create_dp(False, False, False), False, True, False
-    )
+    assert not has_relevant_data("array", create_dp(False, False, False), False, True, False)
     assert has_relevant_data("array", create_dp(False, True, False), False, True, False)
     assert has_relevant_data("array", create_dp(True, True, True), False, True, False)
-    assert not has_relevant_data(
-        "vector", create_dp(True, False, False), False, True, False
-    )
-    assert not has_relevant_data(
-        "distributions", create_dp(False, True, False), False, True, False
+    assert not has_relevant_data("vector", create_dp(True, False, False), False, True, False)
+    assert not has_relevant_data("distributions", create_dp(False, True, False), False, True, False)
+
+
+def test_tuple_unrolling():
+    assert unroll("a", 1) == ("a", 1)
+    assert unroll(("a", "b"), 1) == (("a", "b"), 1)
+    assert unroll((("a", "foobar"), "b"), 1) == (("a", "foobar"), "b", 1)
+    assert unroll((("a", "foobar"), "b"), (("weird", "wonderful"), "wild", "wacky")) == (
+        ("a", "foobar"),
+        "b",
+        ("weird", "wonderful"),
+        "wild",
+        "wacky",
     )
