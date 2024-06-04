@@ -374,3 +374,43 @@ def test_mmd_mm_subclasses(mmd_fixture):
         mm = mmd[key]
         assert isinstance(mm, MM)
         assert isinstance(mm, MappedMatrix)
+
+
+def test_mmd_diagonal():
+    first = bwp.create_datapackage()
+    first.add_persistent_vector(
+        matrix="foo",
+        name="vector",
+        indices_array=np.array([(0, 0), (2, 0)], dtype=bwp.INDICES_DTYPE),
+        data_array=np.array([1, 2.3]),
+    )
+    second = bwp.create_datapackage()
+    second.add_persistent_vector(
+        matrix="foo",
+        name="vector",
+        indices_array=np.array([(10, 0), (12, 0)], dtype=bwp.INDICES_DTYPE),
+        data_array=np.array([11, 12]),
+    )
+    row_mapper = ArrayMapper(array=np.array([0, 2, 10, 12]))
+
+    mmd = MappedMatrixDict(
+        packages={"a": [first], "b": [second]},
+        matrix="foo",
+        row_mapper=row_mapper,
+        diagonal=True,
+    )
+    assert mmd["a"].matrix.shape == (4, 4)
+    assert mmd["a"].matrix.sum() == 3.3
+    assert mmd["b"].matrix.shape == (4, 4)
+    assert mmd["b"].matrix.sum() == 23
+
+
+def test_mmd_non_diagonal(mmd_fixture):
+    first, second, third, fourth, fifth, rows, cols = mmd_fixture
+    with pytest.raises(ValueError):
+        MappedMatrixDict(
+            packages={"a": [first, second], "b": [third, fourth], "c": [fifth]},
+            matrix="foo",
+            row_mapper=rows,
+            diagonal=False,
+        )

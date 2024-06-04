@@ -38,7 +38,7 @@ class MappedMatrixDict(Mapping):
         packages: dict[Union[tuple, str], Sequence[Datapackage]],
         matrix: str,
         row_mapper: ArrayMapper,
-        col_mapper: ArrayMapper,
+        col_mapper: Optional[ArrayMapper] = None,
         use_vectors: bool = True,
         use_arrays: bool = True,
         use_distributions: bool = False,
@@ -122,6 +122,8 @@ class MappedMatrixDict(Mapping):
             seed_override=seed_override,
         )
 
+        if col_mapper is None and not diagonal:
+            raise ValueError("Must supply `col_mapper` for non-diagonal matrices")
         if not isinstance(packages, Mapping):
             raise ValueError("`packages` must be a dictionary")
 
