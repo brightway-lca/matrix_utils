@@ -178,6 +178,9 @@ class MappedMatrix:
             self.rebuild_matrix()
 
     def rebuild_matrix(self) -> None:
+        # In theory, setting this to zero instead of multiplying it would
+        # save some nanoseconds, but it led to weird Numpy dtype errors and
+        # wasn't worth thinking about too much for very little gain.
         self.matrix.data *= 0
         for group in self.groups:
             row, col, data = group.calculate()
