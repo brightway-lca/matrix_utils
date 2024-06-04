@@ -1,5 +1,11 @@
 # Changelog
 
+### [0.4.2] - 2024-06-04
+
+* Fix diagonal `MappedMatrixDict` - `col_mapper` is not required
+* Unroll tuples when multiplying `SparseMatrixDict`
+* Switch from `fs` to `fsspec` (following `bw_processing`)
+
 ### [0.4.1] - 2023-12-18
 
 * Allow passing `MappedMatrix` subclass to `MappedMatrixDict`
