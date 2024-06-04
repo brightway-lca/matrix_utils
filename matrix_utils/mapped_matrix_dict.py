@@ -51,6 +51,7 @@ class MappedMatrixDict(Mapping):
         empty_ok: bool = False,
         sequential: bool = False,
         matrix_class: Type[MappedMatrix] = MappedMatrix,
+        **kwargs,
     ):
         """A thin wrapper around a dict of `MappedMatrix` objects. See its docstring
         for details on `custom_filter` and `indexer_override`.
@@ -143,6 +144,7 @@ class MappedMatrixDict(Mapping):
                 transpose=transpose,
                 custom_filter=custom_filter,
                 empty_ok=empty_ok,
+                **kwargs,
             )
             for key, packages in packages.items()
         }
