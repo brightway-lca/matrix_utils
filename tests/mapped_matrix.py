@@ -4,7 +4,7 @@ import bw_processing as bwp
 import numpy as np
 import pytest
 from fixtures import basic_mm, diagonal
-from fs.zipfs import ZipFS
+from fsspec.implementations.zip import ZipFileSystem
 
 from matrix_utils import ArrayMapper, MappedMatrix
 from matrix_utils.errors import AllArraysEmpty, EmptyArray
@@ -243,10 +243,10 @@ def sensitivity_dps():
         def __getitem__(self, args):
             return np.ones((3,)) * args[1]
 
-    dp_1 = bwp.load_datapackage(ZipFS(dirpath / "sa-1.zip"))
+    dp_1 = bwp.load_datapackage(ZipFileSystem(dirpath / "sa-1.zip"))
     dp_1.rehydrate_interface("a", ArrayInterface())
 
-    dp_2 = bwp.load_datapackage(ZipFS(dirpath / "sa-2.zip"))
+    dp_2 = bwp.load_datapackage(ZipFileSystem(dirpath / "sa-2.zip"))
     dp_2.rehydrate_interface("d", VectorInterface())
 
     return dp_1, dp_2

@@ -2,7 +2,7 @@ from pathlib import Path
 
 import numpy as np
 from bw_processing import INDICES_DTYPE, UNCERTAINTY_DTYPE, create_datapackage
-from fs.zipfs import ZipFS
+from fsspec.implementations.zip import ZipFileSystem
 
 """Create fixture to test cross-platform consistency in ordering resource groups.
 
@@ -86,7 +86,7 @@ def add_data(dp, increment=0):
 
 def create_ordering_datapackages():
     dp = create_datapackage(
-        fs=ZipFS(str(dirpath / "a-first.zip"), write=True),
+        fs=ZipFileSystem(dirpath / "a-first.zip", write=True),
         name="test-fixture-a",
         id_="fixture-a",
     )
@@ -94,7 +94,7 @@ def create_ordering_datapackages():
     dp.finalize_serialization()
 
     dp = create_datapackage(
-        fs=ZipFS(str(dirpath / "b-second.zip"), write=True),
+        fs=ZipFileSystem(dirpath / "b-second.zip", write=True),
         name="test-fixture-b",
         id_="fixture-b",
     )
@@ -104,7 +104,7 @@ def create_ordering_datapackages():
 
 def create_sensitivity_fixtures():
     dp = create_datapackage(
-        fs=ZipFS(str(dirpath / "sa-1.zip"), write=True),
+        fs=ZipFileSystem(dirpath / "sa-1.zip", write=True),
         name="sa-1",
         id_="sa-1",
         seed=42,
@@ -142,7 +142,7 @@ def create_sensitivity_fixtures():
     dp.finalize_serialization()
 
     dp = create_datapackage(
-        fs=ZipFS(str(dirpath / "sa-2.zip"), write=True),
+        fs=ZipFileSystem(str(dirpath / "sa-2.zip"), write=True),
         name="sa-2",
         id_="sa-2",
         seed=42,

@@ -53,6 +53,7 @@ tracker = "https://github.com/brightway-lca/matrix_utils/issues"
 # seems to work, at least for now
 testing = [
     "matrix_utils",
+    "fsspec",
     "pytest",
     "pytest-cov",
     "python-coveralls"

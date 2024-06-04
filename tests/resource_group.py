@@ -2,7 +2,7 @@ from pathlib import Path
 
 import numpy as np
 from bw_processing import INDICES_DTYPE, create_datapackage, load_datapackage
-from fs.zipfs import ZipFS
+from fsspec.implementations.zip import ZipFileSystem
 
 from matrix_utils import ArrayMapper, ResourceGroup
 from matrix_utils.indexers import SequentialIndexer
@@ -13,28 +13,36 @@ dirpath = Path(__file__).parent.resolve() / "fixtures"
 
 def get_vector_group():
     return (
-        load_datapackage(ZipFS(dirpath / "a-first.zip")).filter_by_attribute("group", "x-third"),
+        load_datapackage(ZipFileSystem(dirpath / "a-first.zip")).filter_by_attribute(
+            "group", "x-third"
+        ),
         "x-third",
     )
 
 
 def get_vector_interface_group():
     return (
-        load_datapackage(ZipFS(dirpath / "a-first.zip")).filter_by_attribute("group", "w-fourth"),
+        load_datapackage(ZipFileSystem(dirpath / "a-first.zip")).filter_by_attribute(
+            "group", "w-fourth"
+        ),
         "w-fourth",
     )
 
 
 def get_array_group():
     return (
-        load_datapackage(ZipFS(dirpath / "a-first.zip")).filter_by_attribute("group", "y-second"),
+        load_datapackage(ZipFileSystem(dirpath / "a-first.zip")).filter_by_attribute(
+            "group", "y-second"
+        ),
         "y-second",
     )
 
 
 def get_vector_array_group():
     return (
-        load_datapackage(ZipFS(dirpath / "a-first.zip")).filter_by_attribute("group", "z-first"),
+        load_datapackage(ZipFileSystem(dirpath / "a-first.zip")).filter_by_attribute(
+            "group", "z-first"
+        ),
         "z-first",
     )
 

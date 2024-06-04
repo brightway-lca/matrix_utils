@@ -2,7 +2,7 @@ from pathlib import Path
 
 import numpy as np
 from bw_processing import load_datapackage
-from fs.zipfs import ZipFS
+from fsspec.implementations.zip import ZipFileSystem
 
 from matrix_utils import MappedMatrix
 
@@ -16,8 +16,8 @@ class Interface:
 
 def test_ordering():
     dps = [
-        load_datapackage(ZipFS(dirpath / "b-second.zip")),
-        load_datapackage(ZipFS(dirpath / "a-first.zip")),
+        load_datapackage(ZipFileSystem(dirpath / "b-second.zip")),
+        load_datapackage(ZipFileSystem(dirpath / "a-first.zip")),
     ]
     for dp in dps:
         dp.rehydrate_interface("w-fourth", Interface())
