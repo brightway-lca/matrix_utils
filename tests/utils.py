@@ -44,7 +44,7 @@ def create_dp(vector, array, distributions):
             indices_array=np.array([(0, 0)], dtype=bwp.INDICES_DTYPE),
             distributions_array=np.array(
                 [
-                    (4, 0.5, np.NaN, np.NaN, 0.2, 0.8, False),
+                    (4, 0.5, np.nan, np.nan, 0.2, 0.8, False),
                 ],
                 dtype=bwp.UNCERTAINTY_DTYPE,
             ),

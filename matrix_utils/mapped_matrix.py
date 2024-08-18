@@ -276,7 +276,7 @@ class MappedMatrix:
 
         array = np.zeros(len(given), dtype=UNCERTAINTY_DTYPE)
         for field in FIELDS:
-            array[field] = np.NaN
+            array[field] = np.nan
         array["loc"] = given
         array["uncertainty_type"] = uncertainty_type
         return array
