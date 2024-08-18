@@ -214,7 +214,10 @@ class MappedMatrix:
                 for obj in resources:
                     obj.add_indexer(indexer=package.indexer)
             else:
-                package.indexer = RandomIndexer(seed=seed_override or package.metadata["seed"])
+                package.indexer = RandomIndexer(
+                    seed=seed_override or package.metadata["seed"],
+                    max_value=package.get_max_index_value(),
+                )
                 for obj in resources:
                     obj.add_indexer(indexer=package.indexer)
 

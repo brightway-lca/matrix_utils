@@ -1,6 +1,7 @@
 from itertools import product
 from typing import List, Union
 
+from numpy import int32, int64
 from numpy.random import PCG64, Generator
 
 # Max signed 32 bit integer, compatible with Windows
@@ -21,12 +22,15 @@ class RandomIndexer(Generator, Indexer):
     max_value: Number of columns in the array for which a column index is returned.
     seed: Seed for RNG. Optional."""
 
-    def __init__(self, seed: Union[int, None] = None):
+    def __init__(self, seed: Union[int, None] = None, max_value: int = MAX_SIGNED_32BIT_INT):
         self.seed = seed
+        self.max_value = max_value
         self.reset()
 
     def __next__(self):
-        self.index = self.integers(0, MAX_SIGNED_32BIT_INT)
+        self.index = self.integers(
+            0, self.max_value, dtype=int32 if self.max_value == MAX_SIGNED_32BIT_INT else int64
+        )
         return self.index
 
     def reset(self):

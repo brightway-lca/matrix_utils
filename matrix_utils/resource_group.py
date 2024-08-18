@@ -120,7 +120,9 @@ class ResourceGroup:
         """The source data for the indices array."""
         indices = self.get_resource_by_suffix("indices")
         if self.transpose:
-            indices = indices.astype([("col", np.int32), ("row", np.int32)], copy=False)
+            indices = indices.astype(
+                [("col", indices.dtype[0]), ("row", indices.dtype[0])], copy=False
+            )
         return indices
 
     def get_resource_by_suffix(self, suffix: str) -> Any:
