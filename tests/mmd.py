@@ -1,8 +1,7 @@
 import bw_processing as bwp
 import numpy as np
 import pytest
-from scipy.sparse import csr_matrix
-from scipy.sparse.base import issparse
+from scipy.sparse import csr_matrix, issparse
 
 from matrix_utils import ArrayMapper, MappedMatrix, MappedMatrixDict, SparseMatrixDict
 from matrix_utils.errors import AllArraysEmpty

@@ -37,9 +37,9 @@ dependencies = [
     # dependencies as strings with quotes, e.g. "foo"
     # You can add version requirements like "foo>2.0"
     "numpy",
-    "scipy",
+    "scipy>=1.10",
     "pandas",
-    "bw_processing",
+    "bw_processing>=1.0",
     "stats_arrays",
 ]
 
