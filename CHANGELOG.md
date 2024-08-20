@@ -1,5 +1,9 @@
 # Changelog
 
+### [0.5] - 2024-08-20
+
+* Default is not 64 bit integers for indexing; compatible with `bw_processing` 1.0
+
 ### [0.4.3] - 2024-06-04
 
 * Allow `MappedMatrixDict` to take extra `kwargs` for compatiblity with custom matrix classes
