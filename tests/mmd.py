@@ -5,7 +5,7 @@ from scipy.sparse import csr_matrix, issparse
 
 from matrix_utils import ArrayMapper, MappedMatrix, MappedMatrixDict, SparseMatrixDict
 from matrix_utils.errors import AllArraysEmpty
-from matrix_utils.indexers import RandomIndexer, SequentialIndexer
+from matrix_utils.indexers import MAX_SIGNED_32BIT_INT, RandomIndexer, SequentialIndexer
 
 
 @pytest.fixture
@@ -161,7 +161,7 @@ def test_mmd_empty_datapackages(mmd_fixture):
 
 def test_mmd_random(mmd_fixture):
     first, second, third, fourth, fifth, rows, cols = mmd_fixture
-    indexer = RandomIndexer(seed=42)
+    indexer = RandomIndexer(seed=42, max_value=MAX_SIGNED_32BIT_INT)
     mmd = MappedMatrixDict(
         packages={"a": [first, second], "b": [third, fourth], "c": [fifth]},
         matrix="foo",

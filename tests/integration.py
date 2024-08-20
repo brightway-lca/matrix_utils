@@ -1,13 +1,26 @@
 import bw_processing as bwp
 import numpy as np
+import pytest
 from fixtures import aggregation, basic_mm, diagonal, overlapping
 
 from matrix_utils import MappedMatrix
 
 
-def test_basic_matrix_construction():
+@pytest.mark.parametrize("smaller", [True, False])
+def test_basic_resource_group_indices_dtype(smaller):
+    dp = basic_mm(indices_32bit=smaller)
+
+    dtype = np.int32 if smaller else np.int64
+
+    for name in ("vector", "vector2", "array"):
+        assert dp.get_resource(f"{name}.indices")[0]["row"].dtype == dtype
+        assert dp.get_resource(f"{name}.indices")[0]["col"].dtype == dtype
+
+
+@pytest.mark.parametrize("smaller", [True, False])
+def test_basic_matrix_construction(smaller):
     mm = MappedMatrix(
-        packages=[basic_mm()],
+        packages=[basic_mm(indices_32bit=smaller)],
         matrix="foo",
         use_arrays=False,
         use_distributions=False,
@@ -21,9 +34,10 @@ def test_basic_matrix_construction():
     assert np.allclose(matrix.data, data)
 
 
-def test_matrix_construction_transpose():
+@pytest.mark.parametrize("smaller", [True, False])
+def test_matrix_construction_transpose(smaller):
     mm = MappedMatrix(
-        packages=[diagonal()],
+        packages=[diagonal(indices_32bit=smaller)],
         matrix="foo",
         use_arrays=False,
         use_distributions=False,
@@ -39,7 +53,7 @@ def test_matrix_construction_transpose():
     assert np.allclose(matrix.data, data)
 
     mm = MappedMatrix(
-        packages=[diagonal()],
+        packages=[diagonal(indices_32bit=smaller)],
         matrix="foo",
         use_arrays=False,
         use_distributions=False,
@@ -47,9 +61,14 @@ def test_matrix_construction_transpose():
     assert mm.matrix.shape == (4, 2)
 
 
-def test_matrix_construction_overlapping_substitution():
+@pytest.mark.parametrize("smaller", [True, False])
+def test_matrix_construction_overlapping_substitution(smaller):
     mm = MappedMatrix(
-        packages=[overlapping(sum_intra_duplicates=True, sum_inter_duplicates=False)],
+        packages=[
+            overlapping(
+                indices_32bit=smaller, sum_intra_duplicates=True, sum_inter_duplicates=False
+            )
+        ],
         matrix="foo",
         use_arrays=False,
         use_distributions=False,
@@ -64,9 +83,14 @@ def test_matrix_construction_overlapping_substitution():
     assert np.allclose(matrix.data, data)
 
 
-def test_matrix_construction_overlapping_sum():
+@pytest.mark.parametrize("smaller", [True, False])
+def test_matrix_construction_overlapping_sum(smaller):
     mm = MappedMatrix(
-        packages=[overlapping(sum_intra_duplicates=False, sum_inter_duplicates=True)],
+        packages=[
+            overlapping(
+                indices_32bit=smaller, sum_intra_duplicates=False, sum_inter_duplicates=True
+            )
+        ],
         matrix="foo",
         use_arrays=False,
         use_distributions=False,
@@ -83,9 +107,10 @@ def test_matrix_construction_overlapping_sum():
     assert np.allclose(matrix.data, data)
 
 
-def test_matrix_construction_internal_aggregation():
+@pytest.mark.parametrize("smaller", [True, False])
+def test_matrix_construction_internal_aggregation(smaller):
     mm = MappedMatrix(
-        packages=[aggregation()],
+        packages=[aggregation(indices_32bit=smaller)],
         matrix="foo",
         use_arrays=False,
         use_distributions=False,
@@ -99,9 +124,10 @@ def test_matrix_construction_internal_aggregation():
     assert np.allclose(matrix.data, data)
 
 
-def test_matrix_construction_no_internal_aggregation():
+@pytest.mark.parametrize("smaller", [True, False])
+def test_matrix_construction_no_internal_aggregation(smaller):
     mm = MappedMatrix(
-        packages=[aggregation(sum_intra_duplicates=False)],
+        packages=[aggregation(indices_32bit=smaller, sum_intra_duplicates=False)],
         matrix="foo",
         use_arrays=False,
         use_distributions=False,

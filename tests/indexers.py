@@ -1,6 +1,7 @@
 import numpy as np
 
 from matrix_utils import CombinatorialIndexer, Proxy, RandomIndexer, SequentialIndexer
+from matrix_utils.indexers import MAX_SIGNED_32BIT_INT, MAX_SIGNED_64BIT_INT
 
 
 def test_random():
@@ -10,6 +11,17 @@ def test_random():
     a = RandomIndexer()
     b = RandomIndexer()
     assert not np.allclose([next(a) for _ in range(10)], [next(b) for _ in range(10)])
+
+
+def test_indexing_max_value():
+    a = RandomIndexer(42, max_value=10)
+    values = [next(a) for _ in range(10000)]
+    assert max(values) == 10 - 1
+
+    a = RandomIndexer(42)
+    values = [next(a) for _ in range(10000)]
+    assert max(values) < MAX_SIGNED_64BIT_INT
+    assert max(values) > MAX_SIGNED_32BIT_INT
 
 
 def test_random_reset():
