@@ -6,6 +6,7 @@ from numpy.random import PCG64, Generator
 
 # Max signed 32 bit integer, compatible with Windows
 MAX_SIGNED_32BIT_INT = 2147483647
+MAX_SIGNED_64BIT_INT = 9223372036854775807
 
 
 class Indexer:
@@ -19,10 +20,13 @@ class RandomIndexer(Generator, Indexer):
 
     Returns indices for a sample array.
 
+    Because we are creating Python indices, and Python starts indices with zero, the value
+    `max_value` is never reached - the maximum generated index is `max_value - 1`.
+
     max_value: Number of columns in the array for which a column index is returned.
     seed: Seed for RNG. Optional."""
 
-    def __init__(self, seed: Union[int, None] = None, max_value: int = MAX_SIGNED_32BIT_INT):
+    def __init__(self, seed: Union[int, None] = None, max_value: int = MAX_SIGNED_64BIT_INT):
         self.seed = seed
         self.max_value = max_value
         self.reset()
