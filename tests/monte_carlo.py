@@ -170,8 +170,6 @@ def test_distributions_reproducible():
         results[:, :, i] = mm.matrix.toarray()
 
     given = results.sum(axis=0).sum(axis=0).ravel()
-    print(given.shape)
-    print(given)
     expected = np.array(
         [
             21.06909828,

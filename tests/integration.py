@@ -100,8 +100,6 @@ def test_matrix_construction_overlapping_sum(smaller):
     col = np.array([0, 1, 2, 3, 5, 4])
     data = np.array([12, 16.3, 4, 25, 12.3, 125])
     matrix = mm.matrix.tocoo()
-    print(matrix)
-    print(matrix.data)
     assert np.allclose(matrix.row, row)
     assert np.allclose(matrix.col, col)
     assert np.allclose(matrix.data, data)

@@ -21,7 +21,6 @@ def test_ordering():
     ]
     for dp in dps:
         dp.rehydrate_interface("w-fourth", Interface())
-        print(list(dp.groups))
 
     mm = MappedMatrix(packages=dps, matrix="matrix-a")
     assert [grp.label for grp in mm.groups] == [

@@ -736,7 +736,6 @@ def test_input_index_vector(sensitivity_dps):
         (942484272, 942484272, 1, 1),
     ]
     for row in expected:
-        print(mm.input_indexer_vector())
         assert np.allclose(mm.input_indexer_vector(), row)
         try:
             next(mm)

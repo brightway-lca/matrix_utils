@@ -1,4 +1,5 @@
 import numpy as np
+from scipy import sparse
 
 from .errors import EmptyArray
 
@@ -23,28 +24,31 @@ class ArrayMapper:
 
     """  # NOQA: E501
 
-    def __init__(self, *, array: np.ndarray, sparse_cutoff: float = 0.1, empty_ok: bool = False):
+    def __init__(self, *, array: np.ndarray, sparse_cutoff: int = 50000, empty_ok: bool = False):
         self._check_input_array(array)
 
         # Even if already unique, this only adds ~2ms for 100.000 elements
         self.array = np.unique(array)
+        self.empty_ok = empty_ok
 
-        # TODO
-        # Sparse matrices could be used if the number of values present is much less
-        # than the number of possible values, given the (min, max) range.
-        # The default code will generate a complete mapping for the (min, max)
-        # interval, which can use too much memory in certain cases.
-        # self.use_sparse = len(self.keys) / self.keys.max() <= sparse_cutoff:
-
-        if array.shape == (0,):
-            if empty_ok:
+        if self.array.shape == (0,):
+            if self.empty_ok:
+                self.empty_input = True
                 self.max_value = 0
+                self.max_index = 0
+                return
             else:
                 raise EmptyArray("Empty array can't be used to map values")
         else:
-            self.max_value = int(self.array.max())
-        self.index_array = np.zeros(self.max_value + 1) - 1
-        self.index_array[self.array] = np.arange(len(self.array))
+            self.empty_input = False
+            self.max_value = self.array[-1]
+            self.max_index = len(self.array) - 1
+
+        # Zero serves as a missing value, so start at one
+        self.matrix = sparse.coo_matrix(
+            (np.arange(1, len(self.array) + 1), (self.array, np.zeros_like(self.array))),
+            (self.max_value + 1, 1),
+        ).tocsr()
 
     def __len__(self):
         return self.array.shape[0]
@@ -61,16 +65,25 @@ class ArrayMapper:
         if array.shape == (0,):
             # Empty array
             return array.copy()
+        elif self.empty_input:
+            if self.empty_ok:
+                # Return all with missing flag
+                return np.zeros_like(array) - 1
+            else:
+                raise EmptyArray("Can't map with empty input array")
 
         result = np.zeros_like(array) - 1
         mask = array <= self.max_value
-        result[mask] = self.index_array[array[mask]]
+        # https://numpy.org/doc/stable/reference/generated/numpy.matrix.A1.html
+        result[mask] = (self.matrix[array[mask], np.zeros_like(array[mask])]).A1 - 1
         return result
 
     def to_dict(self) -> dict:
         """Turn the mapping arrays into a Python dict. This is only useful for
         human examination, the normal implementation uses Numpy functions on the
         arrays directly."""
+        if self.empty_input:
+            return {}
         return {int(x): int(y) for x, y in zip(self.array, self.map_array(self.array))}
 
     def reverse_dict(self) -> dict:
