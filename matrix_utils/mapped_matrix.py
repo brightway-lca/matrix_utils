@@ -137,12 +137,12 @@ class MappedMatrix:
         col_indices = safe_concatenate_indices([obj.col_matrix for obj in self.groups], empty_ok)
 
         if diagonal:
-            x = int(self.row_mapper.index_array.max() + 1)
+            x = 0 if self.row_mapper.empty_input else self.row_mapper.max_index + 1
             dimensions = (x, x)
         else:
             dimensions = (
-                int(self.row_mapper.index_array.max() + 1),
-                int(self.col_mapper.index_array.max() + 1),
+                0 if self.row_mapper.empty_input else self.row_mapper.max_index + 1,
+                0 if self.col_mapper.empty_input else self.col_mapper.max_index + 1,
             )
 
         self.matrix = sparse.coo_matrix(
