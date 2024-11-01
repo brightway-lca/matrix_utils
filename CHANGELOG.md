@@ -1,8 +1,12 @@
 # Changelog
 
+### [0.6] - 2024-11-01
+
+* New array mapping implementation using sparse matrices which is ~100x faster and allows for very large input values
+
 ### [0.5] - 2024-08-20
 
-* Default is not 64 bit integers for indexing; compatible with `bw_processing` 1.0
+* Default is now 64 bit integers for indexing; compatible with `bw_processing` 1.0
 
 ### [0.4.3] - 2024-06-04
 
