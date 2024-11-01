@@ -48,7 +48,7 @@ class ArrayMapper:
         self.matrix = sparse.coo_matrix(
             (np.arange(1, len(self.array) + 1), (self.array, np.zeros_like(self.array))),
             (self.max_value + 1, 1),
-        ).tocsr()
+        ).tocsc()
 
     def __len__(self):
         return self.array.shape[0]

@@ -12,12 +12,12 @@ def test_initial_setup():
     assert np.allclose(am.map_array(inpt), expected)
 
 
-@pytest.mark.skip(reason="Causes a memory error")
 def test_with_large_values():
     inpt = np.array([1288834974657, 2288834974657, 3488834974657, 3288834974657])
     am = ArrayMapper(array=inpt)
-    expected = np.array([0, 1, 4, 3])
-    assert np.allclose(am.map_array(inpt), expected)
+    given = np.array([1288834974657, 228883474657, 3288834974657, 3488834974657])
+    expected = np.array([0, -1, 2, 3])
+    assert np.allclose(am.map_array(given), expected)
 
 
 def test_float_indices_raises_error():
