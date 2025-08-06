@@ -1,7 +1,7 @@
 import numpy as np
 from scipy import sparse
 
-from .errors import EmptyArray
+from matrix_utils.errors import EmptyArray
 
 
 class ArrayMapper:

@@ -4,9 +4,9 @@ import numpy as np
 from bw_processing import DatapackageBase
 from stats_arrays import MCRandomNumberGenerator
 
-from .aggregation import aggregate_with_sparse
-from .array_mapper import ArrayMapper
-from .indexers import Indexer, Proxy
+from matrix_utils.aggregation import aggregate_with_sparse
+from matrix_utils.array_mapper import ArrayMapper
+from matrix_utils.indexers import Indexer, Proxy
 
 
 class FakeRNG:

@@ -2,7 +2,7 @@ from typing import Optional
 
 import numpy as np
 
-from .errors import AllArraysEmpty
+from matrix_utils.errors import AllArraysEmpty
 
 
 def filter_groups_for_packages(

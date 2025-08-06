@@ -4,11 +4,15 @@ import numpy as np
 from bw_processing import INDICES_DTYPE, UNCERTAINTY_DTYPE, Datapackage
 from scipy import sparse
 
-from .array_mapper import ArrayMapper
-from .errors import AllArraysEmpty, EmptyInterface
-from .indexers import CombinatorialIndexer, RandomIndexer, SequentialIndexer
-from .resource_group import ResourceGroup
-from .utils import filter_groups_for_packages, handle_all_arrays_empty, safe_concatenate_indices
+from matrix_utils.array_mapper import ArrayMapper
+from matrix_utils.errors import AllArraysEmpty, EmptyInterface
+from matrix_utils.indexers import CombinatorialIndexer, RandomIndexer, SequentialIndexer
+from matrix_utils.resource_group import ResourceGroup
+from matrix_utils.utils import (
+    filter_groups_for_packages,
+    handle_all_arrays_empty,
+    safe_concatenate_indices,
+)
 
 
 class MappedMatrix:

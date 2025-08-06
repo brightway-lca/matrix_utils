@@ -4,10 +4,10 @@ from typing import Any, Callable, Optional, Sequence, Type, Union
 from bw_processing import Datapackage
 from scipy import sparse
 
-from .array_mapper import ArrayMapper
-from .indexers import Indexer, RandomIndexer, SequentialIndexer
-from .mapped_matrix import MappedMatrix
-from .utils import unroll
+from matrix_utils.array_mapper import ArrayMapper
+from matrix_utils.indexers import Indexer, RandomIndexer, SequentialIndexer
+from matrix_utils.mapped_matrix import MappedMatrix
+from matrix_utils.utils import unroll
 
 
 class SparseMatrixDict(dict):
