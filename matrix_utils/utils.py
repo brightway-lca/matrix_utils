@@ -1,3 +1,5 @@
+from typing import Optional
+
 import numpy as np
 
 from .errors import AllArraysEmpty
@@ -62,3 +64,51 @@ def unroll(a: tuple, b: tuple) -> tuple:
         return (a, *b)
     else:
         return (a, b)
+
+
+def handle_all_arrays_empty(
+    packages: dict, matrix_label: str, identifier: Optional[str] = None
+) -> None:
+    """Format the error messages for `AllArraysEmpty` to make them understandable"""
+    if not packages and not identifier:
+        ERROR = """
+No data found to build {} matrix.
+
+No datapackages found which could provide data to build this matrix.
+""".format(
+            matrix_label
+        )
+        raise AllArraysEmpty(ERROR)
+    elif not packages:
+        ERROR = """
+No data found to build {} matrix for {}.
+
+No datapackages found which could provide data to build this matrix.
+""".format(
+            matrix_label, identifier
+        )
+        raise AllArraysEmpty(ERROR)
+    else:
+        ERROR_START = """
+No data found to build {} matrix.
+
+This error commonly occurs when using impact assessment methods for the wrong version of the
+background database, because each background database version has its own set of elementary flows.
+
+Found {} resource groups in {} datapackages but none of them had data for the requested method:
+""".format(
+            matrix_label, len(packages), sum(len(group) for group in packages.values())
+        )
+        ERROR_DETAIL_TEMPLATE = """
+Datapackage name: {}
+Resource group: {}
+Data array length: {} (none of this data could be used)
+"""
+        ERROR_DETAILS = [
+            ERROR_DETAIL_TEMPLATE.format(
+                package.metadata["name"], group.identifier or group.label, len(group.data_original)
+            )
+            for package, groups in packages.items()
+            for group in groups
+        ]
+        raise AllArraysEmpty(ERROR_START + "".join(ERROR_DETAILS))

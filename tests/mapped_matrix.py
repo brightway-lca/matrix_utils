@@ -142,11 +142,19 @@ def test_indexer_override():
 
 
 def test_no_packages_error():
-    with pytest.raises(AllArraysEmpty):
+    with pytest.raises(AllArraysEmpty) as exc_info:
         MappedMatrix(
             packages=[],
             matrix="foo",
         )
+    assert (
+        exc_info.value.args[0]
+        == """
+No data found to build foo matrix.
+
+No datapackages found which could provide data to build this matrix.
+"""
+    )
 
 
 def test_no_packages_empty_ok():

@@ -136,16 +136,24 @@ def test_mmd_empty_datapackages(mmd_fixture):
         col_mapper=cols,
     )
 
-    with pytest.raises(AllArraysEmpty):
+    with pytest.raises(AllArraysEmpty) as exc_info:
         MappedMatrixDict(
             packages={
-                "a": [],
-                "b": [],
+                ("a", "tuple"): [],
+                "b": [first, second],
             },
             matrix="foo",
             row_mapper=rows,
             col_mapper=cols,
         )
+    assert (
+        exc_info.value.args[0]
+        == """
+No data found to build foo matrix for ('a', 'tuple').
+
+No datapackages found which could provide data to build this matrix.
+"""
+    )
 
     MappedMatrixDict(
         packages={

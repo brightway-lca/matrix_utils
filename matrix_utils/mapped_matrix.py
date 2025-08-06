@@ -5,10 +5,10 @@ from bw_processing import INDICES_DTYPE, UNCERTAINTY_DTYPE, Datapackage
 from scipy import sparse
 
 from .array_mapper import ArrayMapper
-from .errors import EmptyInterface
+from .errors import AllArraysEmpty, EmptyInterface
 from .indexers import CombinatorialIndexer, RandomIndexer, SequentialIndexer
 from .resource_group import ResourceGroup
-from .utils import filter_groups_for_packages, safe_concatenate_indices
+from .utils import filter_groups_for_packages, handle_all_arrays_empty, safe_concatenate_indices
 
 
 class MappedMatrix:
@@ -17,6 +17,7 @@ class MappedMatrix:
         *,
         packages: Sequence[Datapackage],
         matrix: str,
+        identifier: Optional[str] = None,
         use_vectors: bool = True,
         use_arrays: bool = True,
         use_distributions: bool = False,
@@ -109,19 +110,24 @@ class MappedMatrix:
         self.groups = tuple([obj for lst in self.packages.values() for obj in lst])
         self.add_indexers(indexer_override, seed_override)
 
-        self.row_mapper = row_mapper or ArrayMapper(
-            array=safe_concatenate_indices(
-                [obj.unique_row_indices_for_mapping() for obj in self.groups], empty_ok
-            ),
-            empty_ok=empty_ok,
-        )
-        if not diagonal:
-            self.col_mapper = col_mapper or ArrayMapper(
+        try:
+            self.row_mapper = row_mapper or ArrayMapper(
                 array=safe_concatenate_indices(
-                    [obj.unique_col_indices_for_mapping() for obj in self.groups],
-                    empty_ok,
+                    [obj.unique_row_indices_for_mapping() for obj in self.groups], empty_ok
                 ),
                 empty_ok=empty_ok,
+            )
+            if not diagonal:
+                self.col_mapper = col_mapper or ArrayMapper(
+                    array=safe_concatenate_indices(
+                        [obj.unique_col_indices_for_mapping() for obj in self.groups],
+                        empty_ok,
+                    ),
+                    empty_ok=empty_ok,
+                )
+        except AllArraysEmpty:
+            handle_all_arrays_empty(
+                packages=self.packages, matrix_label=self.matrix_label, identifier=identifier
             )
 
         self.add_mappers(
@@ -133,8 +139,17 @@ class MappedMatrix:
             self.add_mappers(axis=1, mapper=self.col_mapper)
         self.map_indices()
 
-        row_indices = safe_concatenate_indices([obj.row_matrix for obj in self.groups], empty_ok)
-        col_indices = safe_concatenate_indices([obj.col_matrix for obj in self.groups], empty_ok)
+        try:
+            row_indices = safe_concatenate_indices(
+                [obj.row_matrix for obj in self.groups], empty_ok
+            )
+            col_indices = safe_concatenate_indices(
+                [obj.col_matrix for obj in self.groups], empty_ok
+            )
+        except AllArraysEmpty:
+            handle_all_arrays_empty(
+                packages=self.packages, matrix_label=self.matrix_label, identifier=identifier
+            )
 
         if diagonal:
             x = 0 if self.row_mapper.empty_input else self.row_mapper.max_index + 1

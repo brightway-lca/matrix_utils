@@ -97,6 +97,19 @@ class ResourceGroup:
         )
 
     @property
+    def identifier(self) -> str | None:
+        """Shortcut to get a single `identifier` attribute for the group resources"""
+        ids = {
+            group["identifier"]
+            for group in self.package.metadata["resources"]
+            if group.get("identifier")
+        }
+        if not ids or len(ids) > 1:
+            return None
+        else:
+            return ids.pop()
+
+    @property
     def has_distributions(self):
         try:
             self.get_resource_by_suffix("distributions")

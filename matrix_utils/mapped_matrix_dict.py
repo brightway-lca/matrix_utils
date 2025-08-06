@@ -133,6 +133,7 @@ class MappedMatrixDict(Mapping):
             key: matrix_class(
                 packages=packages,
                 matrix=matrix,
+                identifier=str(key),
                 use_vectors=use_vectors,
                 use_arrays=use_arrays,
                 use_distributions=use_distributions,

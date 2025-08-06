@@ -3,7 +3,13 @@ import numpy as np
 import pytest
 
 from matrix_utils.errors import AllArraysEmpty
-from matrix_utils.utils import has_relevant_data, safe_concatenate_indices, unroll
+from matrix_utils.resource_group import ResourceGroup
+from matrix_utils.utils import (
+    handle_all_arrays_empty,
+    has_relevant_data,
+    safe_concatenate_indices,
+    unroll,
+)
 
 
 def test_safe_concatenate_indices():
@@ -103,3 +109,49 @@ def test_tuple_unrolling():
         "wild",
         "wacky",
     )
+
+
+def test_handle_all_arrays_empty_multiple():
+    a = bwp.create_datapackage(name="abcd")
+    a.add_persistent_vector(
+        matrix="foo-matrix",
+        name="first-one",
+        indices_array=np.array([(10, 10), (12, 9), (14, 8), (18, 7)], dtype=bwp.INDICES_DTYPE),
+        data_array=np.array([11, 12.3, 14, 125]),
+    )
+    a = a.filter_by_attribute("matrix", "foo-matrix")
+
+    b = bwp.create_datapackage(name="efgh")
+    b.add_persistent_vector(
+        matrix="foo-matrix",
+        name="second-one",
+        indices_array=np.array([(10, 10), (12, 9), (14, 8)], dtype=bwp.INDICES_DTYPE),
+        data_array=np.array([11, 12.3, 14]),
+    )
+    b = b.filter_by_attribute("matrix", "foo-matrix")
+
+    packages = {
+        a: [ResourceGroup(package=a, group_label="first-one")],
+        b: [ResourceGroup(package=b, group_label="second-one")],
+    }
+
+    with pytest.raises(AllArraysEmpty) as exc_info:
+        handle_all_arrays_empty(packages, "foo-matrix")
+
+    expected = """
+No data found to build foo-matrix matrix.
+
+This error commonly occurs when using impact assessment methods for the wrong version of the
+background database, because each background database version has its own set of elementary flows.
+
+Found 2 resource groups in 2 datapackages but none of them had data for the requested method:
+
+Datapackage name: abcd
+Resource group: first-one
+Data array length: 4 (none of this data could be used)
+
+Datapackage name: efgh
+Resource group: second-one
+Data array length: 3 (none of this data could be used)
+"""
+    assert exc_info.value.args[0] == expected
