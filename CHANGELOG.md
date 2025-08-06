@@ -1,5 +1,9 @@
 # Changelog
 
+### [0.6.2] - 2025-08-06
+
+* Fix [#27](https://github.com/brightway-lca/matrix_utils/issues/27): Release `0.6.1` broke Python `3.9` compatibility
+
 ### [0.6.1] - 2025-08-06
 
 * Fix [#26](https://github.com/brightway-lca/matrix_utils/issues/26): `AllArraysEmpty` error is incomprehensible
