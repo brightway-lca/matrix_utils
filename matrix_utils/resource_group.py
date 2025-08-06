@@ -1,4 +1,4 @@
-from typing import Any, Callable, Union
+from typing import Any, Callable, Optional, Union
 
 import numpy as np
 from bw_processing import DatapackageBase
@@ -97,7 +97,7 @@ class ResourceGroup:
         )
 
     @property
-    def identifier(self) -> str | None:
+    def identifier(self) -> Optional[str]:
         """Shortcut to get a single `identifier` attribute for the group resources"""
         ids = {
             group["identifier"]
