@@ -1,10 +1,15 @@
 # Changelog
 
-### [0.6] - 2024-11-01
+### [0.6.1] - 2025-08-06
+
+* Fix [#26](https://github.com/brightway-lca/matrix_utils/issues/26): `AllArraysEmpty` error is incomprehensible
+* Switch to absolute internal imports
+
+## [0.6] - 2024-11-01
 
 * New array mapping implementation using sparse matrices which is ~100x faster and allows for very large input values
 
-### [0.5] - 2024-08-20
+## [0.5] - 2024-08-20
 
 * Default is now 64 bit integers for indexing; compatible with `bw_processing` 1.0
 
