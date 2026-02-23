@@ -75,7 +75,7 @@ class ArrayMapper:
         result = np.zeros_like(array) - 1
         mask = array <= self.max_value
         # https://numpy.org/doc/stable/reference/generated/numpy.matrix.A1.html
-        result[mask] = (self.matrix[array[mask], np.zeros_like(array[mask])]).A1 - 1
+        result[mask] = np.asarray(self.matrix[array[mask], np.zeros_like(array[mask])]).ravel() - 1
         return result
 
     def to_dict(self) -> dict:
