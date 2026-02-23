@@ -1,5 +1,9 @@
 # Changelog
 
+### [0.6.3] - 2026-02-23
+
+* Fix [#32](https://github.com/brightway-lca/matrix_utils/issues/32): Replace deprecated `.A1` property on scipy sparse matrices
+
 ### [0.6.2] - 2025-08-06
 
 * Fix [#27](https://github.com/brightway-lca/matrix_utils/issues/27): Release `0.6.1` broke Python `3.9` compatibility
