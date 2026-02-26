@@ -115,20 +115,36 @@ class MappedMatrix:
         self.add_indexers(indexer_override, seed_override)
 
         try:
-            self.row_mapper = row_mapper or ArrayMapper(
-                array=safe_concatenate_indices(
-                    [obj.unique_row_indices_for_mapping() for obj in self.groups], empty_ok
-                ),
-                empty_ok=empty_ok,
-            )
-            if not diagonal:
-                self.col_mapper = col_mapper or ArrayMapper(
-                    array=safe_concatenate_indices(
-                        [obj.unique_col_indices_for_mapping() for obj in self.groups],
-                        empty_ok,
-                    ),
+            if row_mapper is None:
+                row_arrays = []
+                for obj in self.groups:
+                    arr = obj.row_indices_for_mapping()
+                    row_arrays.append(arr)
+
+                row_values = safe_concatenate_indices(row_arrays, empty_ok)
+
+                self.row_mapper = ArrayMapper(
+                    array=row_values,
                     empty_ok=empty_ok,
                 )
+            else:
+                self.row_mapper = row_mapper
+
+            if not diagonal:
+                if col_mapper is None:
+                    col_arrays = []
+                    for obj in self.groups:
+                        arr = obj.col_indices_for_mapping()
+                        col_arrays.append(arr)
+
+                    col_values = safe_concatenate_indices(col_arrays, empty_ok)
+
+                    self.col_mapper = ArrayMapper(
+                        array=col_values,
+                        empty_ok=empty_ok,
+                    )
+                else:
+                    self.col_mapper = col_mapper
         except AllArraysEmpty:
             handle_all_arrays_empty(
                 packages=self.packages, matrix_label=self.matrix_label, identifier=identifier

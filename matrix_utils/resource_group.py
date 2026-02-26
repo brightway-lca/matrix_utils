@@ -218,11 +218,29 @@ class ResourceGroup:
 
     def unique_row_indices_for_mapping(self):
         """Return array of unique indices that respect aggregation policy"""
-        return np.unique(mask_array(self.get_indices_data()["row"], self.custom_filter_mask))
+        data = mask_array(self.get_indices_data()["row"], self.custom_filter_mask)
+        # Structured-array field views can be non-contiguous; materialize contiguous memory first
+        # to avoid pathological performance in `np.unique`.
+        return np.unique(np.ascontiguousarray(data))
 
     def unique_col_indices_for_mapping(self):
         """Return array of unique indices that respect aggregation policy"""
-        return np.unique(mask_array(self.get_indices_data()["col"], self.custom_filter_mask))
+        data = mask_array(self.get_indices_data()["col"], self.custom_filter_mask)
+        # Structured-array field views can be non-contiguous; materialize contiguous memory first
+        # to avoid pathological performance in `np.unique`.
+        return np.unique(np.ascontiguousarray(data))
+
+    def row_indices_for_mapping(self):
+        """Return raw row indices for mapping, with custom filter applied if present."""
+        data = mask_array(self.get_indices_data()["row"], self.custom_filter_mask)
+        # Force contiguous memory to improve downstream sorting/uniquing performance.
+        return np.ascontiguousarray(data)
+
+    def col_indices_for_mapping(self):
+        """Return raw column indices for mapping, with custom filter applied if present."""
+        data = mask_array(self.get_indices_data()["col"], self.custom_filter_mask)
+        # Force contiguous memory to improve downstream sorting/uniquing performance.
+        return np.ascontiguousarray(data)
 
     def add_indexer(self, indexer: Indexer):
         self.indexer = indexer
