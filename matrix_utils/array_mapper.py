@@ -27,15 +27,6 @@ class ArrayMapper:
 
     def __init__(self, *, array: np.ndarray, sparse_cutoff: int = 50000, empty_ok: bool = False):
 
-        # Object dtype forces very slow Python-level comparisons in `np.unique`.
-        # Most index arrays are integer identifiers, so we normalize object arrays
-        # to int64 when possible.
-        if array.dtype.kind == "O":
-            try:
-                array = array.astype(np.int64)
-            except (TypeError, ValueError):
-                # Keep original dtype if coercion is not possible.
-                pass
 
         self._check_input_array(array)
 
