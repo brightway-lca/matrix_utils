@@ -69,7 +69,9 @@ class ResourceGroup:
         self.custom_filter = custom_filter
         self.transpose = transpose
         self.vector = self.is_vector()
-        self.seed = seed_override or self.package.metadata.get("seed")
+        self.seed = (
+            seed_override if seed_override is not None else self.package.metadata.get("seed")
+        )
 
         if custom_filter is not None:
             self.custom_filter_mask = custom_filter(self.get_indices_data())

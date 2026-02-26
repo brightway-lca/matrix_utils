@@ -250,7 +250,7 @@ class MappedMatrix:
                     obj.add_indexer(indexer=package.indexer)
             else:
                 package.indexer = RandomIndexer(
-                    seed=seed_override or package.metadata["seed"],
+                    seed=seed_override if seed_override is not None else package.metadata["seed"],
                     max_value=package.get_max_index_value(),
                 )
                 for obj in resources:
