@@ -36,11 +36,11 @@ class ArrayMapper:
         if array.dtype.kind in {"i", "u"} and array.shape[0] > 100_000:
             try:
                 self.array = np.sort(pd.unique(array))
-            except Exception:
+            except (TypeError, ValueError):
                 self.array = np.unique(array)
         else:
-            # Even if already unique, this only adds ~2ms for 100.000 elements
             self.array = np.unique(array)
+
         self.empty_ok = empty_ok
 
         if self.array.shape == (0,):
