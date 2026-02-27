@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from scipy import sparse
 
 from matrix_utils.errors import EmptyArray
@@ -25,10 +26,21 @@ class ArrayMapper:
     """  # NOQA: E501
 
     def __init__(self, *, array: np.ndarray, sparse_cutoff: int = 50000, empty_ok: bool = False):
+
+
         self._check_input_array(array)
 
-        # Even if already unique, this only adds ~2ms for 100.000 elements
-        self.array = np.unique(array)
+        # `np.unique` can be very slow on large, unsorted integer arrays.
+        # Use hash-based `pandas.unique` first, then sort only the unique values.
+        # Fall back to NumPy if anything unexpected occurs.
+        if array.dtype.kind in {"i", "u"} and array.shape[0] > 100_000:
+            try:
+                self.array = np.sort(pd.unique(array))
+            except (TypeError, ValueError):
+                self.array = np.unique(array)
+        else:
+            self.array = np.unique(array)
+
         self.empty_ok = empty_ok
 
         if self.array.shape == (0,):

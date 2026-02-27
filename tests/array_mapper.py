@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+import matrix_utils.array_mapper as array_mapper_module
 from matrix_utils.array_mapper import ArrayMapper
 from matrix_utils.errors import EmptyArray
 
@@ -78,3 +79,27 @@ def test_empty_array_ok():
     am = ArrayMapper(array=np.array([], dtype=int), empty_ok=True)
     assert am.array.shape == (0,)
     assert am.empty_input
+
+
+def test_empty_mapper_maps_to_missing_values():
+    am = ArrayMapper(array=np.array([], dtype=int), empty_ok=True)
+    result = am.map_array(np.array([0, 42], dtype=int))
+    assert np.array_equal(result, np.array([-1, -1]))
+
+
+def test_reverse_dict():
+    am = ArrayMapper(array=np.array([10, 20, 10, 30]))
+    assert am.reverse_dict() == {0: 10, 1: 20, 2: 30}
+
+
+def test_large_integer_array_pandas_fallback(monkeypatch):
+    # Trigger the large integer optimization branch and force fallback
+    inpt = np.tile(np.array([5, 2, 7, 2, 5], dtype=np.int64), 25_000)
+
+    def raise_type_error(_):
+        raise TypeError("boom")
+
+    monkeypatch.setattr(array_mapper_module.pd, "unique", raise_type_error)
+
+    am = ArrayMapper(array=inpt)
+    assert np.array_equal(am.array, np.array([2, 5, 7]))

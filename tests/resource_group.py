@@ -85,11 +85,39 @@ def test_data_X_empty():
 
 
 def test_data_current_vector_interface():
-    pass
+    class VectorInterface:
+        def __next__(self):
+            return np.array([10, 20, 30], dtype=float)
+
+    dp, label = get_vector_interface_group()
+    dp.rehydrate_interface(label, VectorInterface())
+    g = ResourceGroup(package=dp, group_label=label)
+    complete_group(g)
+    g.calculate()
+    assert np.allclose(np.array([10, 20, 30]), g.data_current)
+    assert g.data_original.__class__.__name__ == "VectorInterface"
 
 
 def test_data_current_array_interface():
-    pass
+    class ArrayInterface:
+        @property
+        def shape(self):
+            return (3, 4)
+
+        def __getitem__(self, args):
+            return np.array([1, 2, 3], dtype=float) + args[1]
+
+    dp, label = get_vector_array_group()
+    dp.rehydrate_interface(label, ArrayInterface())
+    g = ResourceGroup(package=dp, group_label=label)
+    complete_group(g)
+    g.calculate()
+    assert np.allclose(np.array([1, 2, 3]), g.data_current)
+
+    next(g.indexer)
+    g.calculate()
+    assert np.allclose(np.array([2, 3, 4]), g.data_current)
+    assert g.data_original.__class__.__name__ == "ArrayInterface"
 
 
 def test_data_current_vector():
@@ -108,3 +136,13 @@ def test_data_current_array():
     g.calculate()
     assert np.allclose(np.array([-21, 41, 0]), g.data_current)
     assert np.allclose(np.array([[21, 22, 23], [41, 42, 43], [0, 1, 2]]), g.data_original)
+
+
+def test_row_col_indices_for_mapping_are_contiguous():
+    dp, label = get_array_group()
+    g = ResourceGroup(package=dp, group_label=label)
+
+    assert g.row_indices_for_mapping().flags["C_CONTIGUOUS"]
+    assert g.col_indices_for_mapping().flags["C_CONTIGUOUS"]
+    assert np.array_equal(g.unique_row_indices_for_mapping(), np.array([10, 20, 30]))
+    assert np.array_equal(g.unique_col_indices_for_mapping(), np.array([14, 15, 16]))

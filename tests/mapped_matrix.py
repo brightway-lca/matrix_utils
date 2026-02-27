@@ -842,3 +842,29 @@ def test_empty_combinatorial_datapackage():
     )
     for _ in range(10):
         next(mm)
+
+
+def test_input_indexer_vector_raises_on_unsupported_type():
+    class BadIndexer:
+        index = "not-an-index"
+
+        def __next__(self):
+            return self
+
+    s = bwp.create_datapackage(sequential=True)
+    s.add_persistent_vector(
+        matrix="foo",
+        data_array=np.arange(3),
+        indices_array=np.array([(0, 0), (1, 1), (0, 1)], dtype=bwp.INDICES_DTYPE),
+    )
+
+    mm = MappedMatrix(
+        packages=[s],
+        matrix="foo",
+        use_arrays=False,
+        use_distributions=False,
+        indexer_override=BadIndexer(),
+    )
+
+    with pytest.raises(ValueError, match="Can't understand indexer value"):
+        mm.input_indexer_vector()
