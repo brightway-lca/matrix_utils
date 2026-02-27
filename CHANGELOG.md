@@ -1,5 +1,9 @@
 # Changelog
 
+### [0.7.0] - 2026-02-27
+
+* Merge [#33](https://github.com/brightway-lca/matrix_utils/pull/33): Speed up large-index mapping by avoiding repeated unique and using fast integer dedupicator. Thanks @romainsacchi!
+
 ### [0.6.3] - 2026-02-23
 
 * Fix [#32](https://github.com/brightway-lca/matrix_utils/issues/32): Replace deprecated `.A1` property on scipy sparse matrices
