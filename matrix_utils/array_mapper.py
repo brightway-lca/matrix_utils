@@ -26,8 +26,6 @@ class ArrayMapper:
     """  # NOQA: E501
 
     def __init__(self, *, array: np.ndarray, sparse_cutoff: int = 50000, empty_ok: bool = False):
-
-
         self._check_input_array(array)
 
         # `np.unique` can be very slow on large, unsorted integer arrays.
@@ -86,6 +84,8 @@ class ArrayMapper:
 
         result = np.zeros_like(array) - 1
         mask = array <= self.max_value
+        if not mask.any():
+            return result
         # https://numpy.org/doc/stable/reference/generated/numpy.matrix.A1.html
         result[mask] = np.asarray(self.matrix[array[mask], np.zeros_like(array[mask])]).ravel() - 1
         return result

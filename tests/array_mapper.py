@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+from scipy import sparse
 
 import matrix_utils.array_mapper as array_mapper_module
 from matrix_utils.array_mapper import ArrayMapper
@@ -90,6 +91,41 @@ def test_empty_mapper_maps_to_missing_values():
 def test_reverse_dict():
     am = ArrayMapper(array=np.array([10, 20, 10, 30]))
     assert am.reverse_dict() == {0: 10, 1: 20, 2: 30}
+
+
+def test_csc_empty_fancy_index_returns_sparse():
+    """Document scipy behaviour: indexing a CSC matrix with two empty arrays returns
+    a sparse matrix of shape (1, 0), NOT an empty dense array.
+
+    This is the root cause of the bug fixed in ``map_array``: if this behaviour
+    changes in a future scipy release the guard ``if not mask.any()`` may no
+    longer be necessary, but removing it would still be safe.
+    """
+    m = sparse.coo_matrix(([1], ([2], [0])), shape=(5, 1)).tocsc()
+    empty = np.array([], dtype=np.intp)
+    result = m[empty, empty]
+    assert sparse.issparse(result), (
+        f"Expected a sparse matrix but got {type(result)}. "
+        "scipy may have changed its fancy-indexing behaviour for CSC matrices — "
+        "re-evaluate whether the `if not mask.any()` guard in map_array is still needed."
+    )
+    assert result.shape == (1, 0), f"Expected shape (1, 0) but got {result.shape}."
+
+
+def test_all_values_exceed_max_value():
+    # Regression: when every lookup value exceeds max_value the mask is all-False,
+    # which causes csc_matrix[[], []] to return a (1, 0) sparse matrix whose
+    # np.asarray().ravel() has shape (1,) instead of (0,) — corrupting the result.
+    am = ArrayMapper(array=np.array([1, 2, 3]))
+    result = am.map_array(np.array([100, 200, 300]))
+    assert np.array_equal(result, [-1, -1, -1])
+
+
+def test_mixed_in_range_and_out_of_range():
+    # Some values in range, some beyond max_value — make sure both are handled.
+    am = ArrayMapper(array=np.array([1, 3, 5]))
+    result = am.map_array(np.array([1, 99, 3, 88, 5]))
+    assert np.array_equal(result, [0, -1, 1, -1, 2])
 
 
 def test_large_integer_array_pandas_fallback(monkeypatch):
