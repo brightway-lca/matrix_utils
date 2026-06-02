@@ -63,12 +63,14 @@ You may also find it useful to iterate through `MappedMatrix.groups`, which are 
 
 ### `ResourceGroup` class
 
-A `bw_processing` data package is essentially a metadata file and a bag of data resources. These resources are *grouped*, for multiple resources are needed to build one matrix, or one component of one matrix. For example, one needs not only the data vector, but also the row and column indices to build a simple matrix. One could also have a `flip` vector, in another file, used to flip the signs of data elements before matrix insertion.
+A `bw_processing` data package is essentially a metadata file and a bag of data resources. These resources are *grouped*, for multiple resources are needed to build one matrix, or one component of one matrix. For example, one needs not only the data vector, but also the row and column indices to build a simple matrix. One could also have a `flip` vector (to negate signs before insertion) or a `scale` vector (to apply a per-exchange multiplicative factor before insertion, e.g. for allocation or unit conversion).
 
 The `ResourceGroup` class provides a single interface to these data files and their metadata. `ResourceGroup` instances are created automatically by `MappedMatrix`, and available via `MappedMatrix.groups`. The [source code](https://github.com/brightway-lca/matrix_utils/) is pretty readable, and in general you probably don't need to worry about this low-level class, but the following could be useful:
 
 * `ResourceGroup.data_original`: The data as it is present in the datapackage, before masking (i.e. the Numpy data vector or array, or the data interface). This is the raw input data, duplicate elements are not aggregated (if applicable).
-* `ResourceGroup.data_current`: The data sample used (before aggregation) to build the matrix. It is both masked and flipped.
+* `ResourceGroup.data_current`: The data sample used (before aggregation) to build the matrix. It is masked, flipped (if a flip array is present), and scaled (if a scale array is present).
+* `ResourceGroup.has_scale`: Boolean property; `True` if the resource group includes a scale array.
+* `ResourceGroup.scale`: The scale array with all masks applied. Raises `KeyError` if no scale array is present; check `has_scale` first.
 * `ResourceGroup.row|col_mapped`: Mapped row and column indices. Has the same length as the datapackage resource, but uses `-1` for values which weren't mapped.
 * `ResourceGroup.row|col_masked`: The data after the custom filter and mapping mask have been applied.
 * `rResourceGroup.row|col_matrix`: Row and column indices (but not data) for insertion into the matrix. These indices are after aggregation within the resource group (if any).
