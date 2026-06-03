@@ -219,6 +219,10 @@ class MappedMatrix:
         self.matrix.data *= 0
         for group in self.groups:
             row, col, data = group.calculate()
+            # NaN means "no data insertion" — skip those elements so earlier
+            # packages' values are preserved rather than overwritten with NaN.
+            nan_mask = ~np.isnan(data)
+            row, col, data = row[nan_mask], col[nan_mask], data[nan_mask]
             if group.package.metadata["sum_inter_duplicates"]:
                 self.matrix[row, col] += data
             else:

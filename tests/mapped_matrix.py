@@ -1158,3 +1158,61 @@ def test_input_flip_vector_with_flip():
     assert flip.dtype == bool
     assert flip.sum() == 1
     assert len(flip) == len(mm.input_data_vector())
+
+
+def test_nan_in_vector_skips_insertion():
+    dp = bwp.create_datapackage()
+    dp.add_persistent_vector(
+        matrix="foo",
+        name="v",
+        indices_array=np.array([(0, 0), (1, 1), (2, 2)], dtype=bwp.INDICES_DTYPE),
+        data_array=np.array([1.0, np.nan, 3.0]),
+    )
+    mm = MappedMatrix(packages=[dp], matrix="foo", use_arrays=False, use_distributions=False)
+    assert mm.matrix[0, 0] == 1.0
+    assert mm.matrix[1, 1] == 0.0  # NaN skipped, stays zero
+    assert mm.matrix[2, 2] == 3.0
+    assert not np.isnan(mm.matrix.data).any()
+
+
+def test_nan_in_array_skips_insertion():
+    dp = bwp.create_datapackage(sequential=True)
+    dp.add_persistent_array(
+        matrix="foo",
+        name="a",
+        indices_array=np.array([(0, 0), (1, 1)], dtype=bwp.INDICES_DTYPE),
+        data_array=np.array([[1.0, np.nan], [3.0, 4.0]]),
+    )
+    mm = MappedMatrix(packages=[dp], matrix="foo", use_distributions=False)
+    # column 0: data = [1.0, 3.0] — both inserted
+    assert mm.matrix[0, 0] == 1.0
+    assert mm.matrix[1, 1] == 3.0
+    next(mm)
+    # column 1: data = [nan, 4.0] — first element skipped, stays zero
+    assert mm.matrix[0, 0] == 0.0
+    assert mm.matrix[1, 1] == 4.0
+    assert not np.isnan(mm.matrix.data).any()
+
+
+def test_nan_preserves_earlier_package_value():
+    # Package A sets values; package B uses NaN to leave them untouched.
+    dp_base = bwp.create_datapackage()
+    dp_base.add_persistent_vector(
+        matrix="foo",
+        name="base",
+        indices_array=np.array([(0, 0), (1, 1)], dtype=bwp.INDICES_DTYPE),
+        data_array=np.array([5.0, 7.0]),
+    )
+    dp_scenario = bwp.create_datapackage()
+    dp_scenario.add_persistent_vector(
+        matrix="foo",
+        name="scenario",
+        indices_array=np.array([(0, 0), (1, 1)], dtype=bwp.INDICES_DTYPE),
+        data_array=np.array([np.nan, 99.0]),
+    )
+    mm = MappedMatrix(
+        packages=[dp_base, dp_scenario], matrix="foo", use_arrays=False, use_distributions=False
+    )
+    assert mm.matrix[0, 0] == 5.0  # NaN in scenario → base value preserved
+    assert mm.matrix[1, 1] == 99.0  # non-NaN in scenario → overrides base
+    assert not np.isnan(mm.matrix.data).any()
