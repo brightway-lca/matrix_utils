@@ -132,14 +132,6 @@ class ResourceGroup:
         return self.apply_masks(self.get_resource_by_suffix("flip"))
 
     @property
-    def has_scale(self):
-        try:
-            self.get_resource_by_suffix("scale")
-            return True
-        except KeyError:
-            return False
-
-    @property
     def scale(self):
         """The scale array, with all masks applied (if necessary)."""
         return self.apply_masks(self.get_resource_by_suffix("scale"))
@@ -312,8 +304,10 @@ class ResourceGroup:
             # No flip array
             pass
 
-        if self.has_scale:
+        try:
             data *= self.scale
+        except KeyError:
+            pass
 
         # Second copy because we want to store the data before aggregation
         self.data_current = data.copy()

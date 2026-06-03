@@ -69,11 +69,10 @@ The `ResourceGroup` class provides a single interface to these data files and th
 
 * `ResourceGroup.data_original`: The data as it is present in the datapackage, before masking (i.e. the Numpy data vector or array, or the data interface). This is the raw input data, duplicate elements are not aggregated (if applicable).
 * `ResourceGroup.data_current`: The data sample used (before aggregation) to build the matrix. It is masked, flipped (if a flip array is present), and scaled (if a scale array is present).
-* `ResourceGroup.has_scale`: Boolean property; `True` if the resource group includes a scale array.
-* `ResourceGroup.scale`: The scale array with all masks applied. Raises `KeyError` if no scale array is present; check `has_scale` first.
+* `ResourceGroup.scale`: The scale array with all masks applied. Raises `KeyError` if no scale array is present.
 * `ResourceGroup.row|col_mapped`: Mapped row and column indices. Has the same length as the datapackage resource, but uses `-1` for values which weren't mapped.
 * `ResourceGroup.row|col_masked`: The data after the custom filter and mapping mask have been applied.
-* `rResourceGroup.row|col_matrix`: Row and column indices (but not data) for insertion into the matrix. These indices are after aggregation within the resource group (if any).
+* `ResourceGroup.row|col_matrix`: Row and column indices (but not data) for insertion into the matrix. These indices are after aggregation within the resource group (if any).
 * `ResourceGroup.calculate(vector=None)`: Function to recalculate matrix row, column, and data vectors. Uses the current state of the indexers, but re-draws values from data iterators. If `vector` is given, use this instead of the given data source.
 * `ResourceGroup.indexer`: The instance of the `Indexer` class applicable for this `ResourceGroup`. Only used for data arrays.
 * `ResourceGroup.ncols`: The integer number of columns in a data array. Returns `None` if a data vector is present.
