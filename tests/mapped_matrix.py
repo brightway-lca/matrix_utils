@@ -971,3 +971,190 @@ def test_indexers_are_unique_false_with_override():
         indexer_override=shared,
     )
     assert mm.indexers_are_unique is False
+
+
+# ── group() ───────────────────────────────────────────────────────────────────
+
+
+def test_group_lookup_found():
+    mm = MappedMatrix(
+        packages=[basic_mm()], matrix="foo", use_arrays=False, use_distributions=False
+    )
+    grp = mm.group("vector")
+    assert grp.label == "vector"
+
+
+def test_group_lookup_not_found():
+    mm = MappedMatrix(
+        packages=[basic_mm()], matrix="foo", use_arrays=False, use_distributions=False
+    )
+    with pytest.raises(KeyError):
+        mm.group("nonexistent")
+
+
+# ── has_flip / has_scale ──────────────────────────────────────────────────────
+
+
+def test_has_flip_true():
+    mm = MappedMatrix(
+        packages=[diagonal()], matrix="foo", use_arrays=False, use_distributions=False
+    )
+    assert mm.group("vector").has_flip is True
+
+
+def test_has_flip_false():
+    mm = MappedMatrix(
+        packages=[basic_mm()], matrix="foo", use_arrays=False, use_distributions=False
+    )
+    assert mm.group("vector").has_flip is False
+
+
+def test_has_scale_false():
+    mm = MappedMatrix(
+        packages=[basic_mm()], matrix="foo", use_arrays=False, use_distributions=False
+    )
+    assert mm.group("vector").has_scale is False
+
+
+def test_has_scale_true():
+    dp = bwp.create_datapackage()
+    dp.add_persistent_vector(
+        matrix="foo",
+        name="sv",
+        indices_array=np.array([(0, 0), (1, 1)], dtype=bwp.INDICES_DTYPE),
+        data_array=np.array([1.0, 2.0]),
+        scale_array=np.array([0.5, 2.0]),
+    )
+    mm = MappedMatrix(packages=[dp], matrix="foo", use_arrays=False, use_distributions=False)
+    assert mm.group("sv").has_scale is True
+
+
+# ── n_elements_dropped ─────────────────────────────────────────────────────────────────
+
+
+def test_n_elements_dropped_none():
+    mm = MappedMatrix(
+        packages=[basic_mm()], matrix="foo", use_arrays=False, use_distributions=False
+    )
+    assert mm.n_elements_dropped == 0
+    assert mm.group("vector").n_elements_dropped == 0
+
+
+def test_n_elements_dropped_custom_filter():
+    mm = MappedMatrix(
+        packages=[basic_mm()],
+        matrix="foo",
+        use_arrays=False,
+        use_distributions=False,
+        custom_filter=lambda x: x["row"] < 5,
+    )
+    # basic_mm vector has rows [0, 2, 4, 8]; filter keeps [0, 2, 4], drops 8
+    assert mm.group("vector").n_elements_dropped == 1
+
+
+def test_n_elements_dropped_unmapped():
+    # Build a matrix with a pre-existing row_mapper that excludes some ids
+    dp = bwp.create_datapackage()
+    dp.add_persistent_vector(
+        matrix="foo",
+        name="v",
+        indices_array=np.array([(0, 0), (99, 0)], dtype=bwp.INDICES_DTYPE),
+        data_array=np.array([1.0, 2.0]),
+    )
+    # row_mapper that only knows about id 0, not 99
+    am = ArrayMapper(array=np.array([0]))
+    mm = MappedMatrix(
+        packages=[dp], matrix="foo", use_arrays=False, use_distributions=False, row_mapper=am
+    )
+    assert mm.group("v").n_elements_dropped == 1
+    assert mm.n_elements_dropped == 1
+
+
+def test_n_elements_dropped_total():
+    dp1 = bwp.create_datapackage()
+    dp1.add_persistent_vector(
+        matrix="foo",
+        name="a",
+        indices_array=np.array([(0, 0), (99, 0)], dtype=bwp.INDICES_DTYPE),
+        data_array=np.array([1.0, 2.0]),
+    )
+    dp2 = bwp.create_datapackage()
+    dp2.add_persistent_vector(
+        matrix="foo",
+        name="b",
+        indices_array=np.array([(0, 0), (98, 0)], dtype=bwp.INDICES_DTYPE),
+        data_array=np.array([3.0, 4.0]),
+    )
+    am = ArrayMapper(array=np.array([0]))
+    mm = MappedMatrix(
+        packages=[dp1, dp2], matrix="foo", use_arrays=False, use_distributions=False, row_mapper=am
+    )
+    assert mm.n_elements_dropped == 2
+
+
+# ── input_raw_indices() ───────────────────────────────────────────────────────
+
+
+def test_input_raw_indices_aligns_with_data_vector():
+    mm = MappedMatrix(
+        packages=[basic_mm()], matrix="foo", use_arrays=False, use_distributions=False
+    )
+    raw = mm.input_raw_indices()
+    data = mm.input_data_vector()
+    assert len(raw) == len(data)
+
+
+def test_input_raw_indices_contains_original_ids():
+    dp = bwp.create_datapackage()
+    dp.add_persistent_vector(
+        matrix="foo",
+        name="v",
+        indices_array=np.array([(10, 20), (30, 40)], dtype=bwp.INDICES_DTYPE),
+        data_array=np.array([1.0, 2.0]),
+    )
+    mm = MappedMatrix(packages=[dp], matrix="foo", use_arrays=False, use_distributions=False)
+    raw = mm.input_raw_indices()
+    assert list(raw["row"]) == [10, 30]
+    assert list(raw["col"]) == [20, 40]
+
+
+def test_input_raw_indices_excludes_dropped():
+    dp = bwp.create_datapackage()
+    dp.add_persistent_vector(
+        matrix="foo",
+        name="v",
+        indices_array=np.array([(0, 0), (99, 0)], dtype=bwp.INDICES_DTYPE),
+        data_array=np.array([1.0, 2.0]),
+    )
+    am = ArrayMapper(array=np.array([0]))
+    mm = MappedMatrix(
+        packages=[dp], matrix="foo", use_arrays=False, use_distributions=False, row_mapper=am
+    )
+    raw = mm.input_raw_indices()
+    # id 99 was unmapped, so only id 0 survives
+    assert len(raw) == 1
+    assert raw["row"][0] == 0
+
+
+# ── input_flip_vector() ───────────────────────────────────────────────────────
+
+
+def test_input_flip_vector_no_flip():
+    mm = MappedMatrix(
+        packages=[basic_mm()], matrix="foo", use_arrays=False, use_distributions=False
+    )
+    flip = mm.input_flip_vector()
+    assert flip.dtype == bool
+    assert not flip.any()
+    assert len(flip) == len(mm.input_data_vector())
+
+
+def test_input_flip_vector_with_flip():
+    mm = MappedMatrix(
+        packages=[diagonal()], matrix="foo", use_arrays=False, use_distributions=False
+    )
+    flip = mm.input_flip_vector()
+    # diagonal fixture: flip_array = [False, True, False, False]
+    assert flip.dtype == bool
+    assert flip.sum() == 1
+    assert len(flip) == len(mm.input_data_vector())
