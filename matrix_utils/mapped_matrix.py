@@ -453,7 +453,8 @@ class MappedMatrix:
 
                 array = self._construct_distributions_array(group.data_current, uncertainty_type=98)
                 array["loc"] = np.mean(data, axis=1)
-                array["loc"][group.flip] *= -1
+                if group.has_flip:
+                    array["loc"][group.flip] *= -1
                 array["scale"] = np.std(data, axis=1)
                 arrays.append(array)
             elif group.is_interface():
