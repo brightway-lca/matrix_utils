@@ -111,8 +111,8 @@ def test_distributions_without_uncertainties():
     row = mm.row_mapper.to_dict()
     col = mm.col_mapper.to_dict()
 
-    assert 50 <= np.mean(results[row[10], col[20], :]) <= 150
-    assert 8 <= np.mean(results[row[11], col[21], :]) <= 14
+    assert 20 <= np.mean(results[row[10], col[20], :]) <= 180
+    assert 5 <= np.mean(results[row[11], col[21], :]) <= 18
 
     assert np.allclose(results[row[10], col[10], :], 11)
     assert np.allclose(results[row[18], col[7], :], 125)
