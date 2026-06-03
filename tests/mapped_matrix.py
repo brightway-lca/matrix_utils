@@ -9,6 +9,80 @@ from fsspec.implementations.zip import ZipFileSystem
 from matrix_utils import ArrayMapper, MappedMatrix
 from matrix_utils.errors import AllArraysEmpty, EmptyArray
 
+# --- input_params ---
+
+
+def _mm_with_params(**kwargs):
+    """Build a MappedMatrix from the given datapackages."""
+    return MappedMatrix(
+        matrix="foo",
+        use_vectors=True,
+        use_arrays=True,
+        use_distributions=False,
+        **kwargs,
+    )
+
+
+def test_input_params_empty_when_no_params():
+    mm = _mm_with_params(packages=[basic_mm()])
+    assert mm.input_params() == {}
+
+
+def test_input_params_vector():
+    dp = bwp.create_datapackage()
+    params = np.array([0.1, 0.9])
+    dp.add_persistent_vector(
+        matrix="foo",
+        name="v",
+        indices_array=np.array([(0, 0), (1, 1)], dtype=bwp.INDICES_DTYPE),
+        data_array=np.array([5.0, 7.0]),
+        params_array=params,
+    )
+    mm = _mm_with_params(packages=[dp])
+    result = mm.input_params()
+    assert list(result.keys()) == ["v"]
+    assert np.allclose(result["v"], params)
+
+
+def test_input_params_only_groups_with_params_included():
+    dp = bwp.create_datapackage()
+    dp.add_persistent_vector(
+        matrix="foo",
+        name="with_params",
+        indices_array=np.array([(0, 0)], dtype=bwp.INDICES_DTYPE),
+        data_array=np.array([1.0]),
+        params_array=np.array([42.0]),
+    )
+    dp.add_persistent_vector(
+        matrix="foo",
+        name="no_params",
+        indices_array=np.array([(1, 1)], dtype=bwp.INDICES_DTYPE),
+        data_array=np.array([2.0]),
+    )
+    mm = _mm_with_params(packages=[dp])
+    result = mm.input_params()
+    assert set(result.keys()) == {"with_params"}
+
+
+def test_input_params_array_tracks_indexer():
+    dp = bwp.create_datapackage(sequential=True)
+    data = np.array([[10.0, 11.0, 12.0], [20.0, 21.0, 22.0]])
+    params = np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
+    dp.add_persistent_array(
+        matrix="foo",
+        name="a",
+        indices_array=np.array([(0, 0), (1, 1)], dtype=bwp.INDICES_DTYPE),
+        data_array=data,
+        params_array=params,
+    )
+    mm = _mm_with_params(packages=[dp])
+    assert np.allclose(mm.input_params()["a"], [1.0, 4.0])
+    next(mm)
+    assert np.allclose(mm.input_params()["a"], [2.0, 5.0])
+    next(mm)
+    assert np.allclose(mm.input_params()["a"], [3.0, 6.0])
+
+
 dirpath = Path(__file__).parent.resolve() / "fixtures"
 
 

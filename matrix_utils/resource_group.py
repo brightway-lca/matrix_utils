@@ -136,6 +136,48 @@ class ResourceGroup:
             return False
 
     @property
+    def has_params(self) -> bool:
+        try:
+            self.get_resource_by_suffix("params")
+            return True
+        except KeyError:
+            return False
+
+    @property
+    def has_param_labels(self) -> bool:
+        try:
+            self.get_resource_by_suffix("param_labels")
+            return True
+        except KeyError:
+            return False
+
+    @property
+    def params_current(self) -> np.ndarray:
+        """Current parameter values.
+
+        For vectors: returns the full 1-D params array (parameters are fixed
+        and do not vary by indexer position).
+        For arrays: returns the column at the current indexer position,
+        mirroring how ``calculate()`` picks the active data column.
+
+        Raises ``KeyError`` if no params array exists for this group.
+        """
+        data = self.get_resource_by_suffix("params")
+        if self.vector:
+            return data
+        return data[:, self.indexer.index % data.shape[1]]
+
+    @property
+    def param_labels(self) -> dict:
+        """Raw param-labels dict ``{"values": [...], "schema": {...}}``.
+
+        Raises ``KeyError`` if no param_labels resource exists.
+        To reconstruct a typed schema object call
+        ``bw_processing.param_labels.schema_from_json_schema(group.param_labels["schema"])``.
+        """
+        return self.get_resource_by_suffix("param_labels")
+
+    @property
     def n_elements_dropped(self) -> int:
         """Number of original datapackage elements dropped by the custom filter and mapping mask."""
         return len(self.get_indices_data()) - len(self.row_masked)
