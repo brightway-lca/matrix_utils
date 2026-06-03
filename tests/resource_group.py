@@ -146,3 +146,98 @@ def test_row_col_indices_for_mapping_are_contiguous():
     assert g.col_indices_for_mapping().flags["C_CONTIGUOUS"]
     assert np.array_equal(g.unique_row_indices_for_mapping(), np.array([10, 20, 30]))
     assert np.array_equal(g.unique_col_indices_for_mapping(), np.array([14, 15, 16]))
+
+
+def make_scaled_group(scale_array=None, flip_array=None):
+    dp = create_datapackage()
+    kwargs = dict(
+        matrix="foo",
+        name="s",
+        indices_array=np.array([(0, 1), (2, 3), (4, 5)], dtype=INDICES_DTYPE),
+        data_array=np.array([10.0, 20.0, 30.0]),
+    )
+    if scale_array is not None:
+        kwargs["scale_array"] = scale_array
+    if flip_array is not None:
+        kwargs["flip_array"] = flip_array
+    dp.add_persistent_vector(**kwargs)
+    g = ResourceGroup(package=dp.filter_by_attribute("group", "s"), group_label="s")
+    complete_group(g)
+    return g
+
+
+def test_scale_applied_static():
+    scale = np.array([0.5, 1.0, 2.0])
+    g = make_scaled_group(scale_array=scale)
+    g.calculate()
+    assert np.allclose(g.data_current, [5.0, 20.0, 60.0])
+
+
+def test_scale_applied_after_flip():
+    scale = np.array([0.5, 1.0, 2.0])
+    flip = np.array([True, False, False])
+    g = make_scaled_group(scale_array=scale, flip_array=flip)
+    g.calculate()
+    # flip negates first element, then scale is applied
+    assert np.allclose(g.data_current, [-5.0, 20.0, 60.0])
+
+
+def test_no_scale_unchanged():
+    g = make_scaled_group()
+    g.calculate()
+    assert np.allclose(g.data_current, [10.0, 20.0, 30.0])
+
+
+def test_scale_applied_array():
+    dp = create_datapackage(sequential=True)
+    # 3 exchanges, 4 columns (Monte Carlo samples)
+    data_array = np.array(
+        [[10.0, 11.0, 12.0, 13.0], [20.0, 21.0, 22.0, 23.0], [30.0, 31.0, 32.0, 33.0]]
+    )
+    scale_array = np.array([0.5, 1.0, 2.0])
+    dp.add_persistent_array(
+        matrix="foo",
+        name="s",
+        indices_array=np.array([(0, 1), (2, 3), (4, 5)], dtype=INDICES_DTYPE),
+        data_array=data_array,
+        scale_array=scale_array,
+    )
+    g = ResourceGroup(package=dp.filter_by_attribute("group", "s"), group_label="s")
+    complete_group(g)
+
+    # column 0: [10, 20, 30] * [0.5, 1.0, 2.0] = [5, 20, 60]
+    g.calculate()
+    assert np.allclose(g.data_current, [5.0, 20.0, 60.0])
+
+    # column 1: [11, 21, 31] * [0.5, 1.0, 2.0] = [5.5, 21, 62]
+    next(g.indexer)
+    g.calculate()
+    assert np.allclose(g.data_current, [5.5, 21.0, 62.0])
+
+
+def test_scale_applied_vector_override():
+    scale = np.array([0.5, 1.0, 2.0])
+    g = make_scaled_group(scale_array=scale)
+    g.calculate(vector=np.array([4.0, 5.0, 6.0]))
+    assert np.allclose(g.data_current, [2.0, 5.0, 12.0])
+
+
+def test_scale_applied_masked():
+    scale = np.array([0.5, 1.0, 2.0])
+    dp = create_datapackage()
+    dp.add_persistent_vector(
+        matrix="foo",
+        name="s",
+        indices_array=np.array([(0, 1), (2, 3), (4, 5)], dtype=INDICES_DTYPE),
+        data_array=np.array([10.0, 20.0, 30.0]),
+        scale_array=scale,
+    )
+    g = ResourceGroup(package=dp.filter_by_attribute("group", "s"), group_label="s")
+    g.add_indexer(SequentialIndexer())
+    # Mappers that only cover the first two index pairs; (4, 5) will be masked out
+    g.add_mapper(0, ArrayMapper(array=np.array([0, 2]), empty_ok=True))
+    g.add_mapper(1, ArrayMapper(array=np.array([1, 3]), empty_ok=True))
+    g.map_indices()
+    g.calculate()
+    # Third element masked; [10, 20] * [0.5, 1.0] = [5, 20]
+    assert np.allclose(g.data_current, [5.0, 20.0])
