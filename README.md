@@ -63,6 +63,10 @@ Out[3]:
 
 Each datapackage is assigned exactly one indexer, shared across all its resource groups. This indexer determines which column of an array resource is used on each iteration. The design assumption is one indexer per datapackage — `MappedMatrix.indexers` returns a `{name: indexer}` dict at that level. `MappedMatrix.local_indexers` returns a `{group_label: indexer}` dict for what each resource group is actually using, which will normally be the same object (or a `Proxy` wrapping it for combinatorial packages). You may replace `group.indexer` on any individual group after construction, but you are then responsible for the consequences — in particular, `next()` only advances the package-level indexers, so any custom group-level indexer must be advanced manually.
 
+#### NaN as a sentinel value
+
+A `NaN` value in a data vector or array is treated as **"no data insertion"** — that element is skipped when the matrix is built or rebuilt, leaving the matrix cell at its current value. This is useful for scenario or override packages: place `NaN` at positions you want to inherit from an earlier package, and a real number where you want to override. Non-NaN elements behave normally. `ResourceGroup.data_current` still carries the raw `NaN` so `input_data_vector()` reflects the actual datapackage contents.
+
 You may also find it useful to iterate through `MappedMatrix.groups`, which are instances of `ResourceGroup`, documented below.
 
 ### `ResourceGroup` class
