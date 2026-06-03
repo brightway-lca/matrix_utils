@@ -120,6 +120,27 @@ class ResourceGroup:
             return False
 
     @property
+    def has_flip(self) -> bool:
+        try:
+            self.get_resource_by_suffix("flip")
+            return True
+        except KeyError:
+            return False
+
+    @property
+    def has_scale(self) -> bool:
+        try:
+            self.get_resource_by_suffix("scale")
+            return True
+        except KeyError:
+            return False
+
+    @property
+    def n_dropped(self) -> int:
+        """Number of original datapackage elements dropped by the custom filter and mapping mask."""
+        return len(self.get_indices_data()) - len(self.row_masked)
+
+    @property
     def data_original(self):
         if self.use_distributions and self.has_distributions:
             return self.get_resource_by_suffix("distributions")

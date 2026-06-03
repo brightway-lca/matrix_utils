@@ -291,6 +291,25 @@ class MappedMatrix:
         indexers = list(self.indexers.values())
         return len({id(i) for i in indexers}) == len(indexers)
 
+    def group(self, label: str) -> "ResourceGroup":
+        """Return the ResourceGroup with the given label.
+
+        Raises ``KeyError`` if no group with that label exists.
+        """
+        for grp in self.groups:
+            if grp.label == label:
+                return grp
+        raise KeyError(label)
+
+    @property
+    def n_dropped(self) -> int:
+        """Total number of datapackage elements dropped across all resource groups.
+
+        An element is dropped when it is excluded by the custom filter or when its
+        row/column id could not be mapped to a matrix index.
+        """
+        return sum(grp.n_dropped for grp in self.groups)
+
     def input_data_vector(self) -> np.ndarray:
         return np.hstack([group.data_current for group in self.groups])
 
@@ -307,6 +326,38 @@ class MappedMatrix:
         array["row"] = rows
         array["col"] = cols
         return array
+
+    def input_raw_indices(self) -> np.ndarray:
+        """Return original datapackage indices (before mapping), with masks applied.
+
+        The result has the same length and order as ``input_data_vector`` and
+        ``input_row_col_indices``, but contains the raw source ids from the datapackage
+        rather than the translated matrix row/column positions. Useful for tracing which
+        original ids contributed to each matrix element.
+        """
+        arrays = []
+        for grp in self.groups:
+            if grp.empty:
+                arrays.append(np.array([], dtype=INDICES_DTYPE))
+            else:
+                arrays.append(grp.apply_masks(grp.get_indices_data()))
+        return np.concatenate(arrays)
+
+    def input_flip_vector(self) -> np.ndarray:
+        """Return a boolean array indicating which elements were negated before matrix insertion.
+
+        Groups without a flip array contribute all-``False`` values. The result aligns
+        element-wise with ``input_data_vector`` and ``input_row_col_indices``.
+        """
+        arrays = []
+        for grp in self.groups:
+            if grp.empty:
+                arrays.append(np.array([], dtype=bool))
+            elif grp.has_flip:
+                arrays.append(grp.flip)
+            else:
+                arrays.append(np.zeros(len(grp.data_current), dtype=bool))
+        return np.hstack(arrays)
 
     def input_provenance(self) -> List[tuple]:
         """Describe where the data in the other ``input_X`` comes from. Returns a list
