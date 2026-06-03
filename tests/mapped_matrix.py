@@ -870,23 +870,23 @@ def test_input_indexer_vector_raises_on_unsupported_type():
         mm.input_indexer_vector()
 
 
-def test_global_indexers_single_package():
+def test_indexers_single_package():
     from matrix_utils.indexers import RandomIndexer
 
     dp = basic_mm(name="alpha")
     mm = MappedMatrix(packages=[dp], matrix="foo", use_arrays=False, use_distributions=False)
-    gi = mm.global_indexers
+    gi = mm.indexers
     assert list(gi.keys()) == ["alpha"]
     assert isinstance(gi["alpha"], RandomIndexer)
 
 
-def test_global_indexers_multiple_packages():
+def test_indexers_multiple_packages():
     from matrix_utils.indexers import RandomIndexer
 
     dp1 = basic_mm(name="pkg-one")
     dp2 = basic_mm(name="pkg-two")
     mm = MappedMatrix(packages=[dp1, dp2], matrix="foo", use_arrays=False, use_distributions=False)
-    gi = mm.global_indexers
+    gi = mm.indexers
     assert set(gi.keys()) == {"pkg-one", "pkg-two"}
     assert isinstance(gi["pkg-one"], RandomIndexer)
     assert isinstance(gi["pkg-two"], RandomIndexer)
@@ -924,7 +924,7 @@ def test_local_indexers_combinatorial_are_proxies():
     assert set(li.keys()) == {"g", "h"}
     assert all(isinstance(v, Proxy) for v in li.values())
     # global indexer is the underlying CombinatorialIndexer
-    assert isinstance(mm.global_indexers["combo"], CombinatorialIndexer)
+    assert isinstance(mm.indexers["combo"], CombinatorialIndexer)
 
 
 def test_indexers_by_type():
@@ -950,14 +950,14 @@ def test_indexers_by_type():
     assert isinstance(seq_indexers[0], SequentialIndexer)
 
 
-def test_global_indexers_are_unique_true():
+def test_indexers_are_unique_true():
     dp1 = basic_mm(name="a")
     dp2 = basic_mm(name="b")
     mm = MappedMatrix(packages=[dp1, dp2], matrix="foo", use_arrays=False, use_distributions=False)
-    assert mm.global_indexers_are_unique is True
+    assert mm.indexers_are_unique is True
 
 
-def test_global_indexers_are_unique_false_with_override():
+def test_indexers_are_unique_false_with_override():
     from matrix_utils.indexers import SequentialIndexer
 
     shared = SequentialIndexer()
@@ -970,4 +970,4 @@ def test_global_indexers_are_unique_false_with_override():
         use_distributions=False,
         indexer_override=shared,
     )
-    assert mm.global_indexers_are_unique is False
+    assert mm.indexers_are_unique is False
