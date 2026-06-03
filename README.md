@@ -59,6 +59,10 @@ Out[3]:
 
 `MappedMatrix` is iterable; calling `next()` will draw new samples from all included stochastic resources, and rebuild the matrix.
 
+#### Indexers
+
+Each datapackage is assigned exactly one indexer, shared across all its resource groups. This indexer determines which column of an array resource is used on each iteration. The design assumption is one indexer per datapackage — `MappedMatrix.indexers` returns a `{name: indexer}` dict at that level. `MappedMatrix.local_indexers` returns a `{group_label: indexer}` dict for what each resource group is actually using, which will normally be the same object (or a `Proxy` wrapping it for combinatorial packages). You may replace `group.indexer` on any individual group after construction, but you are then responsible for the consequences — in particular, `next()` only advances the package-level indexers, so any custom group-level indexer must be advanced manually.
+
 You may also find it useful to iterate through `MappedMatrix.groups`, which are instances of `ResourceGroup`, documented below.
 
 ### `ResourceGroup` class
@@ -74,7 +78,7 @@ The `ResourceGroup` class provides a single interface to these data files and th
 * `ResourceGroup.row|col_masked`: The data after the custom filter and mapping mask have been applied.
 * `ResourceGroup.row|col_matrix`: Row and column indices (but not data) for insertion into the matrix. These indices are after aggregation within the resource group (if any).
 * `ResourceGroup.calculate(vector=None)`: Function to recalculate matrix row, column, and data vectors. Uses the current state of the indexers, but re-draws values from data iterators. If `vector` is given, use this instead of the given data source.
-* `ResourceGroup.indexer`: The instance of the `Indexer` class applicable for this `ResourceGroup`. Only used for data arrays.
+* `ResourceGroup.indexer`: The instance of the `Indexer` class applicable for this `ResourceGroup`. Only used for data arrays. By design each datapackage has one indexer shared across all its resource groups; this is set up automatically by `MappedMatrix`. You may assign a different indexer to individual groups after construction, but you are then responsible for keeping them consistent (e.g. ensuring they advance together when `next()` is called).
 * `ResourceGroup.ncols`: The integer number of columns in a data array. Returns `None` if a data vector is present.
 
 ## Contributing

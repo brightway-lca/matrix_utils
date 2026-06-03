@@ -868,3 +868,106 @@ def test_input_indexer_vector_raises_on_unsupported_type():
 
     with pytest.raises(ValueError, match="Can't understand indexer value"):
         mm.input_indexer_vector()
+
+
+def test_indexers_single_package():
+    from matrix_utils.indexers import RandomIndexer
+
+    dp = basic_mm(name="alpha")
+    mm = MappedMatrix(packages=[dp], matrix="foo", use_arrays=False, use_distributions=False)
+    gi = mm.indexers
+    assert list(gi.keys()) == ["alpha"]
+    assert isinstance(gi["alpha"], RandomIndexer)
+
+
+def test_indexers_multiple_packages():
+    from matrix_utils.indexers import RandomIndexer
+
+    dp1 = basic_mm(name="pkg-one")
+    dp2 = basic_mm(name="pkg-two")
+    mm = MappedMatrix(packages=[dp1, dp2], matrix="foo", use_arrays=False, use_distributions=False)
+    gi = mm.indexers
+    assert set(gi.keys()) == {"pkg-one", "pkg-two"}
+    assert isinstance(gi["pkg-one"], RandomIndexer)
+    assert isinstance(gi["pkg-two"], RandomIndexer)
+    # each package gets its own indexer instance
+    assert gi["pkg-one"] is not gi["pkg-two"]
+
+
+def test_local_indexers_keyed_by_group_label():
+    from matrix_utils.indexers import RandomIndexer
+
+    dp = basic_mm(name="alpha")
+    mm = MappedMatrix(packages=[dp], matrix="foo", use_arrays=False, use_distributions=False)
+    li = mm.local_indexers
+    # basic_mm adds two vector groups: "vector" and "vector2"
+    assert set(li.keys()) == {"vector", "vector2"}
+    # both groups share the same package-level indexer instance
+    assert isinstance(li["vector"], RandomIndexer)
+    assert li["vector"] is li["vector2"]
+
+
+def test_local_indexers_combinatorial_are_proxies():
+    from matrix_utils.indexers import CombinatorialIndexer, Proxy
+
+    dp = bwp.create_datapackage(combinatorial=True, name="combo")
+    indices = np.array([(0, 0), (1, 1)], dtype=bwp.INDICES_DTYPE)
+    dp.add_persistent_array(
+        matrix="foo", name="g", indices_array=indices, data_array=np.array([[1, 2], [3, 4]]).T
+    )
+    dp.add_persistent_array(
+        matrix="foo", name="h", indices_array=indices, data_array=np.array([[5, 6], [7, 8]]).T
+    )
+
+    mm = MappedMatrix(packages=[dp], matrix="foo")
+    li = mm.local_indexers
+    assert set(li.keys()) == {"g", "h"}
+    assert all(isinstance(v, Proxy) for v in li.values())
+    # global indexer is the underlying CombinatorialIndexer
+    assert isinstance(mm.indexers["combo"], CombinatorialIndexer)
+
+
+def test_indexers_by_type():
+    from matrix_utils.indexers import RandomIndexer, SequentialIndexer
+
+    dp_rand = basic_mm(name="rand")
+    dp_seq = bwp.create_datapackage(sequential=True, name="seq")
+    dp_seq.add_persistent_vector(
+        matrix="foo",
+        name="v",
+        indices_array=np.array([(0, 0)], dtype=bwp.INDICES_DTYPE),
+        data_array=np.array([1.0]),
+    )
+    mm = MappedMatrix(
+        packages=[dp_rand, dp_seq], matrix="foo", use_arrays=False, use_distributions=False
+    )
+
+    rand_indexers = mm.indexers_by_type(RandomIndexer)
+    seq_indexers = mm.indexers_by_type(SequentialIndexer)
+    assert len(rand_indexers) == 1
+    assert isinstance(rand_indexers[0], RandomIndexer)
+    assert len(seq_indexers) == 1
+    assert isinstance(seq_indexers[0], SequentialIndexer)
+
+
+def test_indexers_are_unique_true():
+    dp1 = basic_mm(name="a")
+    dp2 = basic_mm(name="b")
+    mm = MappedMatrix(packages=[dp1, dp2], matrix="foo", use_arrays=False, use_distributions=False)
+    assert mm.indexers_are_unique is True
+
+
+def test_indexers_are_unique_false_with_override():
+    from matrix_utils.indexers import SequentialIndexer
+
+    shared = SequentialIndexer()
+    dp1 = basic_mm(name="a")
+    dp2 = basic_mm(name="b")
+    mm = MappedMatrix(
+        packages=[dp1, dp2],
+        matrix="foo",
+        use_arrays=False,
+        use_distributions=False,
+        indexer_override=shared,
+    )
+    assert mm.indexers_are_unique is False

@@ -256,6 +256,41 @@ class MappedMatrix:
                 for obj in resources:
                     obj.add_indexer(indexer=package.indexer)
 
+    @property
+    def indexers(self) -> dict:
+        """Return package-level indexers keyed by datapackage name.
+
+        By design each datapackage has one indexer shared across all its resource groups,
+        but this constraint is not enforced — individual groups can be given different
+        indexers after construction. Use ``local_indexers`` to inspect what each group
+        is actually using.
+        """
+        return {
+            package.metadata["name"]: package.indexer
+            for package in self.packages
+            if hasattr(package, "indexer")
+        }
+
+    @property
+    def local_indexers(self) -> dict:
+        """Return the indexer actually used by each resource group, keyed by group label.
+
+        Normally all groups within a package share the same indexer (or a ``Proxy``
+        wrapping it for combinatorial packages), but users can assign a different indexer
+        to any group after construction, so this may differ from ``indexers``.
+        """
+        return {group.label: group.indexer for group in self.groups if hasattr(group, "indexer")}
+
+    def indexers_by_type(self, indexer_type: type) -> list:
+        """Return all package-level indexers that are instances of ``indexer_type``."""
+        return [indexer for indexer in self.indexers.values() if isinstance(indexer, indexer_type)]
+
+    @property
+    def indexers_are_unique(self) -> bool:
+        """True if no two packages share the same indexer instance."""
+        indexers = list(self.indexers.values())
+        return len({id(i) for i in indexers}) == len(indexers)
+
     def input_data_vector(self) -> np.ndarray:
         return np.hstack([group.data_current for group in self.groups])
 
