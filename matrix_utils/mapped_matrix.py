@@ -256,6 +256,34 @@ class MappedMatrix:
                 for obj in resources:
                     obj.add_indexer(indexer=package.indexer)
 
+    @property
+    def global_indexers(self) -> dict:
+        """Return package-level indexers keyed by datapackage name."""
+        return {
+            package.metadata["name"]: package.indexer
+            for package in self.packages
+            if hasattr(package, "indexer")
+        }
+
+    @property
+    def local_indexers(self) -> dict:
+        """Return resource group indexers keyed by group label."""
+        return {group.label: group.indexer for group in self.groups if hasattr(group, "indexer")}
+
+    def indexers_by_type(self, indexer_type: type) -> list:
+        """Return all global indexers that are instances of ``indexer_type``."""
+        return [
+            indexer
+            for indexer in self.global_indexers.values()
+            if isinstance(indexer, indexer_type)
+        ]
+
+    @property
+    def global_indexers_are_unique(self) -> bool:
+        """True if no two packages share the same indexer instance."""
+        indexers = list(self.global_indexers.values())
+        return len({id(i) for i in indexers}) == len(indexers)
+
     def input_data_vector(self) -> np.ndarray:
         return np.hstack([group.data_current for group in self.groups])
 
