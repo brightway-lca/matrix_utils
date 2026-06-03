@@ -302,13 +302,13 @@ class MappedMatrix:
         raise KeyError(label)
 
     @property
-    def n_dropped(self) -> int:
+    def n_elements_dropped(self) -> int:
         """Total number of datapackage elements dropped across all resource groups.
 
         An element is dropped when it is excluded by the custom filter or when its
         row/column id could not be mapped to a matrix index.
         """
-        return sum(grp.n_dropped for grp in self.groups)
+        return sum(grp.n_elements_dropped for grp in self.groups)
 
     def input_data_vector(self) -> np.ndarray:
         return np.hstack([group.data_current for group in self.groups])

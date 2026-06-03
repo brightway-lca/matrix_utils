@@ -1029,18 +1029,18 @@ def test_has_scale_true():
     assert mm.group("sv").has_scale is True
 
 
-# ── n_dropped ─────────────────────────────────────────────────────────────────
+# ── n_elements_dropped ─────────────────────────────────────────────────────────────────
 
 
-def test_n_dropped_none():
+def test_n_elements_dropped_none():
     mm = MappedMatrix(
         packages=[basic_mm()], matrix="foo", use_arrays=False, use_distributions=False
     )
-    assert mm.n_dropped == 0
-    assert mm.group("vector").n_dropped == 0
+    assert mm.n_elements_dropped == 0
+    assert mm.group("vector").n_elements_dropped == 0
 
 
-def test_n_dropped_custom_filter():
+def test_n_elements_dropped_custom_filter():
     mm = MappedMatrix(
         packages=[basic_mm()],
         matrix="foo",
@@ -1049,10 +1049,10 @@ def test_n_dropped_custom_filter():
         custom_filter=lambda x: x["row"] < 5,
     )
     # basic_mm vector has rows [0, 2, 4, 8]; filter keeps [0, 2, 4], drops 8
-    assert mm.group("vector").n_dropped == 1
+    assert mm.group("vector").n_elements_dropped == 1
 
 
-def test_n_dropped_unmapped():
+def test_n_elements_dropped_unmapped():
     # Build a matrix with a pre-existing row_mapper that excludes some ids
     dp = bwp.create_datapackage()
     dp.add_persistent_vector(
@@ -1066,11 +1066,11 @@ def test_n_dropped_unmapped():
     mm = MappedMatrix(
         packages=[dp], matrix="foo", use_arrays=False, use_distributions=False, row_mapper=am
     )
-    assert mm.group("v").n_dropped == 1
-    assert mm.n_dropped == 1
+    assert mm.group("v").n_elements_dropped == 1
+    assert mm.n_elements_dropped == 1
 
 
-def test_n_dropped_total():
+def test_n_elements_dropped_total():
     dp1 = bwp.create_datapackage()
     dp1.add_persistent_vector(
         matrix="foo",
@@ -1089,7 +1089,7 @@ def test_n_dropped_total():
     mm = MappedMatrix(
         packages=[dp1, dp2], matrix="foo", use_arrays=False, use_distributions=False, row_mapper=am
     )
-    assert mm.n_dropped == 2
+    assert mm.n_elements_dropped == 2
 
 
 # ── input_raw_indices() ───────────────────────────────────────────────────────

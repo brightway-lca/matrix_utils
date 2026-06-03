@@ -136,7 +136,7 @@ class ResourceGroup:
             return False
 
     @property
-    def n_dropped(self) -> int:
+    def n_elements_dropped(self) -> int:
         """Number of original datapackage elements dropped by the custom filter and mapping mask."""
         return len(self.get_indices_data()) - len(self.row_masked)
 
