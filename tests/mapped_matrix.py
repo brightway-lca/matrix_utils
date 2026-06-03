@@ -708,6 +708,29 @@ def test_input_uncertainties_no_distributions(sensitivity_dps):
         assert np.allclose(ua[field], expected[field], equal_nan=True)
 
 
+def test_input_uncertainties_array_group_without_flip():
+    """Regression test for issue #8: array group without flip should not crash."""
+    dp = bwp.create_datapackage()
+    indices_array = np.array([(10, 10), (11, 11)], dtype=bwp.INDICES_DTYPE)
+    data_array = np.array([[7, 8], [8, 9], [9, 10]]).T
+    dp.add_persistent_array(
+        matrix="matrix",
+        data_array=data_array,
+        name="no_flip",
+        indices_array=indices_array,
+    )
+    mm = MappedMatrix(
+        packages=[dp],
+        matrix="matrix",
+        use_vectors=True,
+        use_arrays=True,
+        use_distributions=False,
+    )
+    ua = mm.input_uncertainties()
+    assert ua.shape == (2,)
+    assert np.allclose(ua["loc"], [8.0, 9.0])
+
+
 def test_input_index_vector(sensitivity_dps):
     dp = bwp.create_datapackage(combinatorial=True)
 
