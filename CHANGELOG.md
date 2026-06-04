@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.8] - 2026-06-04
+
+* Merge [#42](https://github.com/brightway-lca/matrix_utils/pull/42): Rename `scale_array` to `rescale_array`, tracking [bw_processing #104](https://github.com/brightway-lca/bw_processing/pull/104). Adds `ResourceGroup.rescale_current` and `MappedMatrix.input_rescale_vector()`.
+* Merge [#41](https://github.com/brightway-lca/matrix_utils/pull/41): Add `params_array` support from [bw_processing #93](https://github.com/brightway-lca/bw_processing/pull/93). New `ResourceGroup` properties `has_params`, `params_current`, `has_param_labels`, and `param_labels`; new `MappedMatrix.input_params()` method.
+* Merge [#40](https://github.com/brightway-lca/matrix_utils/pull/40): Fix `input_uncertainties` crashing when an array group has no flip array (closes [#8](https://github.com/brightway-lca/matrix_utils/issues/8))
+* Merge [#38](https://github.com/brightway-lca/matrix_utils/pull/38): `NaN` values in data vectors/arrays are skipped during matrix insertion, preserving earlier package values
+* Merge [#37](https://github.com/brightway-lca/matrix_utils/pull/37): Add data access convenience methods (`input_raw_indices`, `input_flip_vector`, `input_provenance`, `n_elements_dropped`, `group`)
+* Merge [#36](https://github.com/brightway-lca/matrix_utils/pull/36): Improve access to indexer values (`indexers`, `local_indexers`, `indexers_by_type`, `indexers_are_unique`)
+
 ### [0.7.1] - 2026-03-20
 
 * Fix all elements being masked return sparse matrix instead of array when indexing
