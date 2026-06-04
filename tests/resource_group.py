@@ -2,7 +2,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-from bw_processing import INDICES_DTYPE, create_datapackage, load_datapackage
+from bw_processing import INDICES_DTYPE, StringLabelSchema, create_datapackage, load_datapackage
 from fsspec.implementations.zip import ZipFileSystem
 
 from matrix_utils import ArrayMapper, ResourceGroup
@@ -247,7 +247,7 @@ def test_rescale_applied_masked():
 # --- params support ---
 
 
-def make_params_vector_group(params_array, param_labels=None):
+def make_params_vector_group(params_array, param_labels=None, param_label_schema=None):
     dp = create_datapackage()
     kwargs = dict(
         matrix="foo",
@@ -258,6 +258,8 @@ def make_params_vector_group(params_array, param_labels=None):
     )
     if param_labels is not None:
         kwargs["param_labels"] = param_labels
+    if param_label_schema is not None:
+        kwargs["param_label_schema"] = param_label_schema
     dp.add_persistent_vector(**kwargs)
     g = ResourceGroup(package=dp.filter_by_attribute("group", "p"), group_label="p")
     complete_group(g)
@@ -343,6 +345,18 @@ def test_param_labels_returns_dict():
     g = make_params_vector_group(np.array([1.0, 2.0]), param_labels=["alpha", "beta"])
     labels = g.param_labels
     assert labels["values"] == ["alpha", "beta"]
+
+
+def test_param_labels_includes_schema_when_provided():
+    schema = StringLabelSchema(description="a plain string label")
+    g = make_params_vector_group(
+        np.array([1.0, 2.0]),
+        param_labels=["alpha", "beta"],
+        param_label_schema=schema,
+    )
+    labels = g.param_labels
+    assert labels["values"] == ["alpha", "beta"]
+    assert labels["schema"] == schema.to_json_schema()
 
 
 def test_param_labels_raises_if_absent():

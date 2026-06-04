@@ -169,11 +169,10 @@ class ResourceGroup:
 
     @property
     def param_labels(self) -> dict:
-        """Raw param-labels dict ``{"values": [...], "schema": {...}}``.
+        """Raw param-labels dict. Always has ``"values"``;
+        also has ``"schema"`` when a label schema was provided at write time.
 
         Raises ``KeyError`` if no param_labels resource exists.
-        To reconstruct a typed schema object call
-        ``bw_processing.param_labels.schema_from_json_schema(group.param_labels["schema"])``.
         """
         return self.get_resource_by_suffix("param_labels")
 
