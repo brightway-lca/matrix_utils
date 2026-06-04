@@ -1,7 +1,8 @@
 from pathlib import Path
 
 import numpy as np
-from bw_processing import INDICES_DTYPE, create_datapackage, load_datapackage
+import pytest
+from bw_processing import INDICES_DTYPE, StringLabelSchema, create_datapackage, load_datapackage
 from fsspec.implementations.zip import ZipFileSystem
 
 from matrix_utils import ArrayMapper, ResourceGroup
@@ -241,3 +242,124 @@ def test_rescale_applied_masked():
     g.calculate()
     # Third element masked; [10, 20] * [0.5, 1.0] = [5, 20]
     assert np.allclose(g.data_current, [5.0, 20.0])
+
+
+# --- params support ---
+
+
+def make_params_vector_group(params_array, param_labels=None, param_label_schema=None):
+    dp = create_datapackage()
+    kwargs = dict(
+        matrix="foo",
+        name="p",
+        indices_array=np.array([(0, 1), (2, 3), (4, 5)], dtype=INDICES_DTYPE),
+        data_array=np.array([10.0, 20.0, 30.0]),
+        params_array=params_array,
+    )
+    if param_labels is not None:
+        kwargs["param_labels"] = param_labels
+    if param_label_schema is not None:
+        kwargs["param_label_schema"] = param_label_schema
+    dp.add_persistent_vector(**kwargs)
+    g = ResourceGroup(package=dp.filter_by_attribute("group", "p"), group_label="p")
+    complete_group(g)
+    return g
+
+
+def make_params_array_group(data_array, params_array):
+    dp = create_datapackage(sequential=True)
+    dp.add_persistent_array(
+        matrix="foo",
+        name="p",
+        indices_array=np.array([(0, 1), (2, 3)], dtype=INDICES_DTYPE),
+        data_array=data_array,
+        params_array=params_array,
+    )
+    g = ResourceGroup(package=dp.filter_by_attribute("group", "p"), group_label="p")
+    complete_group(g)
+    return g
+
+
+def test_has_params_false():
+    dp, label = get_vector_group()
+    g = ResourceGroup(package=dp, group_label=label)
+    assert not g.has_params
+
+
+def test_has_params_true_vector():
+    g = make_params_vector_group(np.array([1.0, 2.0]))
+    assert g.has_params
+
+
+def test_params_current_vector():
+    params = np.array([1.5, 2.5, 3.5])
+    g = make_params_vector_group(params)
+    g.calculate()
+    assert np.allclose(g.params_current, params)
+
+
+def test_params_current_vector_fixed_across_iterations():
+    params = np.array([1.5, 2.5])
+    g = make_params_vector_group(params)
+    g.calculate()
+    assert np.allclose(g.params_current, params)
+    next(g.indexer)
+    g.calculate()
+    assert np.allclose(g.params_current, params)
+
+
+def test_params_current_array():
+    data = np.array([[10.0, 11.0, 12.0], [20.0, 21.0, 22.0]])
+    params = np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
+    g = make_params_array_group(data, params)
+    g.calculate()
+    assert np.allclose(g.params_current, [1.0, 4.0])
+    next(g.indexer)
+    g.calculate()
+    assert np.allclose(g.params_current, [2.0, 5.0])
+    next(g.indexer)
+    g.calculate()
+    assert np.allclose(g.params_current, [3.0, 6.0])
+
+
+def test_params_current_raises_if_absent():
+    dp, label = get_vector_group()
+    g = ResourceGroup(package=dp, group_label=label)
+    complete_group(g)
+    g.calculate()
+    with pytest.raises(KeyError):
+        _ = g.params_current
+
+
+def test_has_param_labels_false():
+    g = make_params_vector_group(np.array([1.0, 2.0]))
+    assert not g.has_param_labels
+
+
+def test_has_param_labels_true():
+    g = make_params_vector_group(np.array([1.0, 2.0]), param_labels=["alpha", "beta"])
+    assert g.has_param_labels
+
+
+def test_param_labels_returns_dict():
+    g = make_params_vector_group(np.array([1.0, 2.0]), param_labels=["alpha", "beta"])
+    labels = g.param_labels
+    assert labels["values"] == ["alpha", "beta"]
+
+
+def test_param_labels_includes_schema_when_provided():
+    schema = StringLabelSchema(description="a plain string label")
+    g = make_params_vector_group(
+        np.array([1.0, 2.0]),
+        param_labels=["alpha", "beta"],
+        param_label_schema=schema,
+    )
+    labels = g.param_labels
+    assert labels["values"] == ["alpha", "beta"]
+    assert labels["schema"] == schema.to_json_schema()
+
+
+def test_param_labels_raises_if_absent():
+    g = make_params_vector_group(np.array([1.0, 2.0]))
+    with pytest.raises(KeyError):
+        _ = g.param_labels

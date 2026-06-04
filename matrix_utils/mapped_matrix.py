@@ -397,6 +397,29 @@ class MappedMatrix:
                 position += num_elements
         return result
 
+    def input_params(self) -> dict:
+        """Return current parameter values keyed by ``(package, group_label)``.
+
+        Only groups that carry a params array are included; groups without
+        params are omitted entirely (not present vs. ``None``-valued).
+        Keying by ``(package, group_label)`` avoids silent collisions when
+        two packages contribute groups with the same label.
+
+        For vector groups the full 1-D params array is returned (parameters
+        are fixed and do not vary by iteration). For array groups the column
+        matching the current indexer position is returned, so the result
+        stays in sync with ``input_data_vector`` across Monte Carlo
+        iterations.
+        """
+        result = {}
+        for package, groups in self.packages.items():
+            for group in groups:
+                try:
+                    result[(package, group.label)] = group.params_current
+                except KeyError:
+                    pass
+        return result
+
     def input_indexer_vector(self) -> np.ndarray:
         index_values = []
 

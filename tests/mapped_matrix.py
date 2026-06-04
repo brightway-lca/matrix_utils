@@ -9,6 +9,108 @@ from fsspec.implementations.zip import ZipFileSystem
 from matrix_utils import ArrayMapper, MappedMatrix
 from matrix_utils.errors import AllArraysEmpty, EmptyArray
 
+# --- input_params ---
+
+
+def _mm_with_params(**kwargs):
+    """Build a MappedMatrix from the given datapackages."""
+    return MappedMatrix(
+        matrix="foo",
+        use_vectors=True,
+        use_arrays=True,
+        use_distributions=False,
+        **kwargs,
+    )
+
+
+def test_input_params_empty_when_no_params():
+    mm = _mm_with_params(packages=[basic_mm()])
+    assert mm.input_params() == {}
+
+
+def test_input_params_vector():
+    dp = bwp.create_datapackage()
+    params = np.array([0.1, 0.9])
+    dp.add_persistent_vector(
+        matrix="foo",
+        name="v",
+        indices_array=np.array([(0, 0), (1, 1)], dtype=bwp.INDICES_DTYPE),
+        data_array=np.array([5.0, 7.0]),
+        params_array=params,
+    )
+    mm = _mm_with_params(packages=[dp])
+    result = mm.input_params()
+    pkg = list(mm.packages.keys())[0]
+    assert list(result.keys()) == [(pkg, "v")]
+    assert np.allclose(result[(pkg, "v")], params)
+
+
+def test_input_params_only_groups_with_params_included():
+    dp = bwp.create_datapackage()
+    dp.add_persistent_vector(
+        matrix="foo",
+        name="with_params",
+        indices_array=np.array([(0, 0)], dtype=bwp.INDICES_DTYPE),
+        data_array=np.array([1.0]),
+        params_array=np.array([42.0]),
+    )
+    dp.add_persistent_vector(
+        matrix="foo",
+        name="no_params",
+        indices_array=np.array([(1, 1)], dtype=bwp.INDICES_DTYPE),
+        data_array=np.array([2.0]),
+    )
+    mm = _mm_with_params(packages=[dp])
+    result = mm.input_params()
+    labels = {label for (_, label) in result}
+    assert labels == {"with_params"}
+
+
+def test_input_params_array_tracks_indexer():
+    dp = bwp.create_datapackage(sequential=True)
+    data = np.array([[10.0, 11.0, 12.0], [20.0, 21.0, 22.0]])
+    params = np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
+    dp.add_persistent_array(
+        matrix="foo",
+        name="a",
+        indices_array=np.array([(0, 0), (1, 1)], dtype=bwp.INDICES_DTYPE),
+        data_array=data,
+        params_array=params,
+    )
+    mm = _mm_with_params(packages=[dp])
+    pkg = list(mm.packages.keys())[0]
+    assert np.allclose(mm.input_params()[(pkg, "a")], [1.0, 4.0])
+    next(mm)
+    assert np.allclose(mm.input_params()[(pkg, "a")], [2.0, 5.0])
+    next(mm)
+    assert np.allclose(mm.input_params()[(pkg, "a")], [3.0, 6.0])
+
+
+def test_input_params_duplicate_labels_across_packages():
+    dp1 = bwp.create_datapackage()
+    dp1.add_persistent_vector(
+        matrix="foo",
+        name="v",
+        indices_array=np.array([(0, 0)], dtype=bwp.INDICES_DTYPE),
+        data_array=np.array([1.0]),
+        params_array=np.array([0.1]),
+    )
+    dp2 = bwp.create_datapackage()
+    dp2.add_persistent_vector(
+        matrix="foo",
+        name="v",
+        indices_array=np.array([(1, 1)], dtype=bwp.INDICES_DTYPE),
+        data_array=np.array([2.0]),
+        params_array=np.array([0.9]),
+    )
+    mm = _mm_with_params(packages=[dp1, dp2])
+    result = mm.input_params()
+    assert len(result) == 2
+    values = list(result.values())
+    assert any(np.allclose(v, [0.1]) for v in values)
+    assert any(np.allclose(v, [0.9]) for v in values)
+
+
 dirpath = Path(__file__).parent.resolve() / "fixtures"
 
 
