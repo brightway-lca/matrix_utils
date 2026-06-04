@@ -128,9 +128,9 @@ class ResourceGroup:
             return False
 
     @property
-    def has_scale(self) -> bool:
+    def has_rescale(self) -> bool:
         try:
-            self.get_resource_by_suffix("scale")
+            self.get_resource_by_suffix("rescale")
             return True
         except KeyError:
             return False
@@ -153,9 +153,16 @@ class ResourceGroup:
         return self.apply_masks(self.get_resource_by_suffix("flip"))
 
     @property
-    def scale(self):
-        """The scale array, with all masks applied (if necessary)."""
-        return self.apply_masks(self.get_resource_by_suffix("scale"))
+    def rescale(self):
+        """The rescale array, with all masks applied (if necessary)."""
+        return self.apply_masks(self.get_resource_by_suffix("rescale"))
+
+    @property
+    def rescale_current(self) -> Optional[np.ndarray]:
+        """Current rescale values with masks applied, or ``None`` if no rescale array exists."""
+        if self.has_rescale:
+            return self.rescale
+        return None
 
     def get_indices_data(self):
         """The source data for the indices array."""
@@ -326,7 +333,7 @@ class ResourceGroup:
             pass
 
         try:
-            data *= self.scale
+            data *= self.rescale
         except KeyError:
             pass
 
