@@ -1015,7 +1015,7 @@ def test_group_lookup_not_found():
         mm.group("nonexistent")
 
 
-# ── has_flip / has_scale ──────────────────────────────────────────────────────
+# ── has_flip / has_rescale ────────────────────────────────────────────────────
 
 
 def test_has_flip_true():
@@ -1032,24 +1032,24 @@ def test_has_flip_false():
     assert mm.group("vector").has_flip is False
 
 
-def test_has_scale_false():
+def test_has_rescale_false():
     mm = MappedMatrix(
         packages=[basic_mm()], matrix="foo", use_arrays=False, use_distributions=False
     )
-    assert mm.group("vector").has_scale is False
+    assert mm.group("vector").has_rescale is False
 
 
-def test_has_scale_true():
+def test_has_rescale_true():
     dp = bwp.create_datapackage()
     dp.add_persistent_vector(
         matrix="foo",
         name="sv",
         indices_array=np.array([(0, 0), (1, 1)], dtype=bwp.INDICES_DTYPE),
         data_array=np.array([1.0, 2.0]),
-        scale_array=np.array([0.5, 2.0]),
+        rescale_array=np.array([0.5, 2.0]),
     )
     mm = MappedMatrix(packages=[dp], matrix="foo", use_arrays=False, use_distributions=False)
-    assert mm.group("sv").has_scale is True
+    assert mm.group("sv").has_rescale is True
 
 
 # ── n_elements_dropped ─────────────────────────────────────────────────────────────────

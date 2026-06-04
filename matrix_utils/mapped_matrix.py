@@ -347,6 +347,20 @@ class MappedMatrix:
                 arrays.append(grp.apply_masks(grp.get_indices_data()))
         return np.concatenate(arrays)
 
+    def input_rescale_vector(self) -> np.ndarray:
+        """Return rescale factors for each element, aligned with ``input_data_vector``.
+
+        Groups without a rescale array contribute all-ones values.
+        """
+        arrays = []
+        for grp in self.groups:
+            if grp.empty:
+                arrays.append(np.array([]))
+            else:
+                rc = grp.rescale_current
+                arrays.append(rc if rc is not None else np.ones(len(grp.data_current)))
+        return np.hstack(arrays)
+
     def input_flip_vector(self) -> np.ndarray:
         """Return a boolean array indicating which elements were negated before matrix insertion.
 
