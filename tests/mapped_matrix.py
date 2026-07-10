@@ -1154,6 +1154,64 @@ def test_has_rescale_true():
     assert mm.group("sv").has_rescale is True
 
 
+# ── has_reference / reference ──────────────────────────────────────────────────
+
+
+def test_has_reference_false():
+    mm = MappedMatrix(
+        packages=[basic_mm()], matrix="foo", use_arrays=False, use_distributions=False
+    )
+    assert mm.group("vector").has_reference is False
+
+
+def test_has_reference_true():
+    dp = bwp.create_datapackage()
+    dp.add_persistent_vector(
+        matrix="foo",
+        name="sv",
+        indices_array=np.array([(0, 0), (1, 1)], dtype=bwp.INDICES_DTYPE),
+        data_array=np.array([1.0, 2.0]),
+        reference_array=np.array([True, False], dtype=bool),
+    )
+    mm = MappedMatrix(packages=[dp], matrix="foo", use_arrays=False, use_distributions=False)
+    assert mm.group("sv").has_reference is True
+
+
+def test_reference_values():
+    dp = bwp.create_datapackage()
+    dp.add_persistent_vector(
+        matrix="foo",
+        name="sv",
+        indices_array=np.array([(0, 0), (1, 1)], dtype=bwp.INDICES_DTYPE),
+        data_array=np.array([1.0, 2.0]),
+        reference_array=np.array([True, False], dtype=bool),
+    )
+    mm = MappedMatrix(packages=[dp], matrix="foo", use_arrays=False, use_distributions=False)
+    group = mm.group("sv")
+    assert group.reference.dtype == bool
+    assert list(group.reference) == [True, False]
+
+
+def test_reference_current_none_when_absent():
+    mm = MappedMatrix(
+        packages=[basic_mm()], matrix="foo", use_arrays=False, use_distributions=False
+    )
+    assert mm.group("vector").reference_current is None
+
+
+def test_reference_current_returns_masked_values():
+    dp = bwp.create_datapackage()
+    dp.add_persistent_vector(
+        matrix="foo",
+        name="sv",
+        indices_array=np.array([(0, 0), (1, 1)], dtype=bwp.INDICES_DTYPE),
+        data_array=np.array([1.0, 2.0]),
+        reference_array=np.array([False, True], dtype=bool),
+    )
+    mm = MappedMatrix(packages=[dp], matrix="foo", use_arrays=False, use_distributions=False)
+    assert list(mm.group("sv").reference_current) == [False, True]
+
+
 # ── n_elements_dropped ─────────────────────────────────────────────────────────────────
 
 
