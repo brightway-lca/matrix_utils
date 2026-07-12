@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.9] - 2026-07-12
+
+* Merge [#45](https://github.com/brightway-lca/matrix_utils/pull/45): Expose reference (production) exchange arrays from [bw_processing #108](https://github.com/brightway-lca/bw_processing/pull/108). New `ResourceGroup` properties `has_reference`, `reference`, and `reference_current`. Requires `bw_processing>=1.6`.
+
 ## [0.8] - 2026-06-04
 
 * Merge [#42](https://github.com/brightway-lca/matrix_utils/pull/42): Rename `scale_array` to `rescale_array`, tracking [bw_processing #104](https://github.com/brightway-lca/bw_processing/pull/104). Adds `ResourceGroup.rescale_current` and `MappedMatrix.input_rescale_vector()`.
