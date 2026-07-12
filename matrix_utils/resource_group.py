@@ -136,6 +136,14 @@ class ResourceGroup:
             return False
 
     @property
+    def has_reference(self) -> bool:
+        try:
+            self.get_resource_by_suffix("reference")
+            return True
+        except KeyError:
+            return False
+
+    @property
     def has_params(self) -> bool:
         try:
             self.get_resource_by_suffix("params")
@@ -203,6 +211,18 @@ class ResourceGroup:
         """Current rescale values with masks applied, or ``None`` if no rescale array exists."""
         if self.has_rescale:
             return self.rescale
+        return None
+
+    @property
+    def reference(self):
+        """The reference (production) exchange boolean array, with masks applied (if necessary)."""
+        return self.apply_masks(self.get_resource_by_suffix("reference"))
+
+    @property
+    def reference_current(self) -> Optional[np.ndarray]:
+        """Current reference flags with masks applied, or ``None`` if no reference array exists."""
+        if self.has_reference:
+            return self.reference
         return None
 
     def get_indices_data(self):
