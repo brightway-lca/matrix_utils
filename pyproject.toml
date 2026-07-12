@@ -39,7 +39,7 @@ dependencies = [
     "numpy",
     "scipy>=1.10",
     "pandas",
-    "bw_processing>=1.5",
+    "bw_processing>=1.6",
     "stats_arrays",
 ]
 
