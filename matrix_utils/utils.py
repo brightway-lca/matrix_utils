@@ -12,7 +12,9 @@ def filter_groups_for_packages(
         package: [
             (group_label, filtered_package)
             for group_label, filtered_package in package.groups.items()
-            if has_relevant_data(group_label, package, use_vectors, use_arrays, use_distributions)
+            if has_relevant_data(
+                group_label, filtered_package, use_vectors, use_arrays, use_distributions
+            )
         ]
         for package in [obj.filter_by_attribute("matrix", matrix_label) for obj in packages]
     }

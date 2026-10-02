@@ -5,6 +5,7 @@ import pytest
 from matrix_utils.errors import AllArraysEmpty
 from matrix_utils.resource_group import ResourceGroup
 from matrix_utils.utils import (
+    filter_groups_for_packages,
     handle_all_arrays_empty,
     has_relevant_data,
     safe_concatenate_indices,
@@ -155,3 +156,14 @@ Resource group: second-one
 Data array length: 3 (none of this data could be used)
 """
     assert exc_info.value.args[0] == expected
+
+
+def test_filter_groups_for_packages_resource_without_group():
+    # used to raise KeyError: 'group', when every group was checked against the whole package
+    dp = create_dp(True, False, False)
+    dp.resources.insert(
+        0, {"name": "orphan", "matrix": "foo", "kind": "data", "category": "vector"}
+    )
+    dp.data.insert(0, np.array([0]))
+    result = filter_groups_for_packages([dp], "foo", True, False, False)
+    assert [label for label, _ in next(iter(result.values()))] == ["vector"]
