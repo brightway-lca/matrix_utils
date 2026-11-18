@@ -66,6 +66,9 @@ class MappedMatrix:
             Used when matrices must align to an existing mapping.
         col_mapper :
             Used when matrices must align to an existing mapping.
+        identifier : str
+            Optional identifier of this matrix, e.g. the key in `MappedMatrixDict`. Also
+            used in deriving group seeds; see `derive_group_seeds`.
         seed_override : int
             Overrides the RNG seed given in the datapackage, if any.
         indexer_override : Any
@@ -82,11 +85,24 @@ class MappedMatrix:
         derive_group_seeds : bool
             If `True` (default), each resource group gets its own RNG seed, derived
             deterministically from the base seed (`seed_override`, or the datapackage
-            `seed`), the matrix label, and the group label (plus its occurrence count, if
-            several datapackages have a group with the same label).
+            `seed`), the matrix label, `identifier` (if given), and the group label.
             Results stay reproducible: the same base seed always gives the same
-            samples. If `False`, every resource group uses the base seed directly, so
-            all groups start from the same RNG state; groups with the same number of
+            samples. The datapackage name is not used, as it defaults to a random UUID.
+
+            If several datapackages have a group with the same label, the seeds are
+            further distinguished by occurrence count, in the order the groups appear in
+            `packages` after filtering. Reordering `packages`, or changing `use_vectors`
+            or `use_arrays` so that an earlier group with the same label is included or
+            excluded, therefore changes the seeds of later groups with that label.
+            Groups with unique labels are not affected.
+
+            Seeds are only derived if `use_distributions` is `True`. The derived seed
+            is stored in `ResourceGroup.seed`, so it will differ from the base seed you
+            passed. It is only used for sampling from distributions; indexers of array
+            datapackages still use the base seed.
+
+            If `False`, every resource group uses the base seed directly, so all
+            groups start from the same RNG state; groups with the same number of
             uncertain parameters of each distribution type then draw perfectly
             rank-correlated samples (see
             https://github.com/brightway-lca/matrix_utils/issues/50). Has no effect
@@ -109,11 +125,15 @@ class MappedMatrix:
                 if seed_override is not None
                 else filtered_package.metadata.get("seed")
             )
-            if base is None or not derive_group_seeds:
+            if base is None or not derive_group_seeds or not use_distributions:
+                # Derived seeds are only used to sample from distributions
                 return base
             # Don't use the datapackage name: it defaults to a random UUID, which would
             # break reproducibility. Disambiguate repeated group labels by occurrence.
             key = (matrix, str(group_label))
+            if identifier is not None:
+                # Separate seeds for each `MappedMatrixDict` entry
+                key = (matrix, str(identifier), str(group_label))
             count = seen_seed_keys.get(key, 0)
             seen_seed_keys[key] = count + 1
             return derive_seed(base, *key, str(count))

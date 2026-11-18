@@ -56,6 +56,7 @@ Out[3]:
 * `row_mapper`: `matrix_utils.ArrayMapper`, default `None`. Optional mapping class used to translate data source ids to matrix row indices. In LCA, one would reuse this mapping class to make sure the dimensions of multiple matrices align.
 * `col_mapper`: `matrix_utils.ArrayMapper`, default `None`. Optional mapping class used to translate data source ids to matrix column indices. In LCA, one would reuse this mapping class to make sure the dimensions of multiple matrices align.
 * `seed_override`: int, default `None`. Override the random seed given in the data package. Note that this is ignored if the data package is combinatorial.
+* `derive_group_seeds`: bool, default `True`. Give each resource group its own RNG seed for sampling from distributions, derived deterministically from the base seed (`seed_override` or the data package `seed`), the matrix label, the `identifier` (e.g. the `MappedMatrixDict` key), and the group label. Without this, all groups start from the same RNG state and can draw perfectly correlated samples ([#50](https://github.com/brightway-lca/matrix_utils/issues/50)). Results stay reproducible, but a given seed gives different samples than in matrix_utils 0.9 and earlier; pass `False` to get the old behaviour. `ResourceGroup.seed` holds the derived seed. If several data packages have groups with the same label, their seeds also depend on the order of `packages`.
 
 `MappedMatrix` is iterable; calling `next()` will draw new samples from all included stochastic resources, and rebuild the matrix.
 

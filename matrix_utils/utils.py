@@ -6,18 +6,34 @@ import numpy as np
 from matrix_utils.errors import AllArraysEmpty
 
 
-def derive_seed(seed: int, *labels: str) -> int:
+def derive_seed(seed, *labels: str) -> int:
     """Deterministically derive a new RNG seed from ``seed`` and some string ``labels``.
+
+    ``seed`` can be anything ``numpy.random.RandomState`` accepts: an integer in
+    ``[0, 2**32)``, or a sequence of such integers. Invalid seeds raise the same error
+    as ``RandomState`` would, so a given seed is accepted or rejected regardless of
+    whether seeds are derived.
 
     The same inputs always give the same output, across Python processes and platforms
     (we use ``hashlib`` instead of the salted builtin ``hash``). Different labels give
-    statistically independent seeds via ``numpy.random.SeedSequence``.
+    statistically independent seeds via ``numpy.random.SeedSequence``. Labels are
+    length-prefixed before hashing, so e.g. ``("a_b", "c")`` and ``("a", "b_c")`` can't
+    collide whatever the separator.
 
     Returns an integer in ``[0, 2**32)``, as required by ``numpy.random.RandomState``.
     """
-    digest = hashlib.sha256("\x1f".join(labels).encode("utf-8")).digest()
-    label_entropy = int.from_bytes(digest[:16], "little")
-    return int(np.random.SeedSequence([int(seed), label_entropy]).generate_state(1)[0])
+    # Validate exactly as the RNG we are deriving for would
+    np.random.RandomState(seed)
+    seed_entropy = [int(x) for x in np.atleast_1d(seed)]
+
+    hasher = hashlib.sha256()
+    for label in labels:
+        encoded = label.encode("utf-8")
+        hasher.update(len(encoded).to_bytes(8, "little"))
+        hasher.update(encoded)
+    label_entropy = int.from_bytes(hasher.digest()[:16], "little")
+
+    return int(np.random.SeedSequence(seed_entropy + [label_entropy]).generate_state(1)[0])
 
 
 def filter_groups_for_packages(
