@@ -3,6 +3,7 @@
 ## Unreleased
 
 * Drop support for Python 3.9 (end-of-life since October 2025, and no longer available on the `ubuntu-latest` GitHub runner)
+* Drop support for Python 3.10 (end-of-life since October 2026)
 
 ## [0.9] - 2026-07-12
 
