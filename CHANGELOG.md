@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+* Drop support for Python 3.9 (end-of-life since October 2025, and no longer available on the `ubuntu-latest` GitHub runner)
+
 ## [0.9] - 2026-07-12
 
 * Merge [#45](https://github.com/brightway-lca/matrix_utils/pull/45): Expose reference (production) exchange arrays from [bw_processing #108](https://github.com/brightway-lca/bw_processing/pull/108). New `ResourceGroup` properties `has_reference`, `reference`, and `reference_current`. Requires `bw_processing>=1.6`.
