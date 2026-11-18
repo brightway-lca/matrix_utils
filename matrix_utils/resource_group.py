@@ -4,7 +4,6 @@ import numpy as np
 from bw_processing import DatapackageBase
 from stats_arrays import MCRandomNumberGenerator
 
-from matrix_utils.aggregation import aggregate_with_sparse
 from matrix_utils.array_mapper import ArrayMapper
 from matrix_utils.indexers import Indexer, Proxy
 
@@ -290,6 +289,7 @@ class ResourceGroup:
             mask_array(self.row_mapped, self.custom_filter_mask),
             mask_array(self.col_mapped, self.custom_filter_mask),
         )
+        self._mask_index = self._combined_mask_index()
 
         self.row_masked = self.apply_masks(self.row_mapped)
         self.col_masked = self.apply_masks(self.col_mapped)
@@ -300,17 +300,46 @@ class ResourceGroup:
             self.empty = True
             return
 
+        self._multiplier = self._build_multiplier()
+
         if self.aggregate:
+            # Sorting by the linear index ``row * count + col`` gives the same (row, col)
+            # order as the sparse matrix round trip in ``aggregate_with_sparse``. Storing
+            # the inverse lets ``calculate`` sum duplicates with a single ``bincount``.
             self.count = max(self.row_masked.max(), self.col_masked.max()) + 1
-            self.row_matrix, self.col_matrix, _ = aggregate_with_sparse(
-                self.row_masked,
-                self.col_masked,
-                np.zeros(self.row_masked.shape),
-                self.count,
-            )
+            linear = self.row_masked.astype(np.int64) * self.count + self.col_masked
+            unique, inverse = np.unique(linear, return_inverse=True)
+            self._aggregation_inverse = inverse.reshape(-1)
+            self.row_matrix = (unique // self.count).astype(self.row_masked.dtype)
+            self.col_matrix = (unique % self.count).astype(self.col_masked.dtype)
         else:
             self.row_matrix = self.row_masked
             self.col_matrix = self.col_masked
+
+    def _combined_mask_index(self) -> Optional[np.ndarray]:
+        """Combine ``custom_filter_mask`` and ``unmapped_mask`` into one integer index into the
+        original data, or ``None`` if no element is masked."""
+        index = None
+        if self.custom_filter_mask is not None and not self.custom_filter_mask.all():
+            index = np.flatnonzero(self.custom_filter_mask)
+        if self.unmapped_mask is not None:
+            if index is None:
+                index = np.flatnonzero(self.unmapped_mask)
+            else:
+                index = index[self.unmapped_mask]
+        return index
+
+    def _build_multiplier(self) -> Optional[np.ndarray]:
+        """Combine the flip and rescale arrays (masked) into one multiplier, or ``None`` if
+        neither exists. Flipping is exact in floating point, so ``data * (sign * rescale)``
+        equals flipping and then rescaling."""
+        multiplier = None
+        if self.has_flip:
+            multiplier = np.where(self.flip, -1, 1).astype(np.int8)
+        if self.has_rescale:
+            rescale = self.rescale
+            multiplier = rescale if multiplier is None else multiplier * rescale
+        return multiplier
 
     def unique_row_indices_for_mapping(self):
         """Return array of unique indices that respect aggregation policy"""
@@ -346,6 +375,11 @@ class ResourceGroup:
 
     def apply_masks(self, array):
         """Apply both ``custom_filter_mask`` (if present) and ``unmapped_mask``."""
+        if "_mask_index" in self.__dict__:
+            # Set in ``map_indices``: both masks combined into one integer index
+            index = self._mask_index
+            return array if index is None else array[index]
+
         if self.custom_filter_mask is not None:
             array = array[self.custom_filter_mask]
 
@@ -380,33 +414,27 @@ class ResourceGroup:
         else:
             data = self.data_original[:, self.indexer.index % self.ncols]
 
-        # `data` is now in the original state before **any** masking`
-        # Copy to avoid modifying original data
-        data = data.copy()
+        # `data` is now in the original state before **any** masking.
+        # Apply both custom filter mask and mapping mask. Fancy indexing returns a copy;
+        # without masks, copy explicitly to avoid modifying the original data.
+        if self._mask_index is not None:
+            data = data[self._mask_index]
+        else:
+            data = data.copy()
 
-        # apply both custom filter mask and mapping mask
-        data = self.apply_masks(data)
+        # Flip and rescale, combined into one multiplier in ``map_indices``
+        if self._multiplier is not None:
+            data *= self._multiplier
 
-        try:
-            data[self.flip] *= -1
-        except KeyError:
-            # No flip array
-            pass
-
-        try:
-            data *= self.rescale
-        except KeyError:
-            pass
-
-        # Second copy because we want to store the data before aggregation
-        self.data_current = data.copy()
+        # The data before aggregation. Aggregation creates a new array, and ``data`` isn't
+        # modified after this point, so no copy is needed.
+        self.data_current = data
 
         if self.aggregate:
-            return aggregate_with_sparse(
-                self.row_masked,
-                self.col_masked,
-                data,
-                self.count,
-            )
+            # ``bincount`` always sums in float64; return the input dtype, as before
+            aggregated = np.bincount(
+                self._aggregation_inverse, weights=data, minlength=len(self.row_matrix)
+            ).astype(data.dtype, copy=False)
+            return self.row_matrix, self.col_matrix, aggregated
         else:
             return self.row_matrix, self.col_matrix, data

@@ -241,6 +241,11 @@ class MappedMatrix:
             dimensions,
             dtype=np.float64,
         ).tocsr()
+        # Canonical form (sorted indices, no duplicates) lets us find each group's
+        # positions in ``matrix.data`` once, and then write into ``matrix.data`` directly.
+        self.matrix.sum_duplicates()
+        self.matrix.sort_indices()
+        self._position_cache = None
 
         self.rebuild_matrix()
 
@@ -270,16 +275,71 @@ class MappedMatrix:
         # save some nanoseconds, but it led to weird Numpy dtype errors and
         # wasn't worth thinking about too much for very little gain.
         self.matrix.data *= 0
-        for group in self.groups:
+        for index, group in enumerate(self.groups):
             row, col, data = group.calculate()
+            positions = self._data_positions(index, row, col)
             # NaN means "no data insertion" — skip those elements so earlier
             # packages' values are preserved rather than overwritten with NaN.
-            nan_mask = ~np.isnan(data)
-            row, col, data = row[nan_mask], col[nan_mask], data[nan_mask]
-            if group.package.metadata["sum_inter_duplicates"]:
-                self.matrix[row, col] += data
+            nan_mask = np.isnan(data)
+            if nan_mask.any():
+                keep = ~nan_mask
+                data = data[keep]
+                if positions is None:
+                    row, col = row[keep], col[keep]
+                else:
+                    positions = positions[keep]
+            if positions is None:
+                # Fallback if the matrix structure doesn't allow cached positions;
+                # scipy searches for each (row, col) pair on every call.
+                if group.package.metadata["sum_inter_duplicates"]:
+                    self.matrix[row, col] += data
+                else:
+                    self.matrix[row, col] = data
+            elif group.package.metadata["sum_inter_duplicates"]:
+                self.matrix.data[positions] += data
             else:
-                self.matrix[row, col] = data
+                self.matrix.data[positions] = data
+
+    def _data_positions(self, index: int, row: np.ndarray, col: np.ndarray) -> Optional[np.ndarray]:
+        """Return the positions in ``self.matrix.data`` of the (``row``, ``col``) elements
+        of group number ``index``, or ``None`` if they can't be used.
+
+        Positions are computed once and cached. The cache is keyed on the matrix
+        structure (the matrix object and its ``indices`` and ``indptr`` arrays) and the
+        group's row and column arrays, so it is recomputed if any of these are
+        replaced. Changing the structure arrays in place isn't detected.
+
+        Returns ``None`` (use scipy's slower indexing) if the matrix isn't CSR in
+        canonical format, or if not all elements are already in the matrix structure.
+        """
+        matrix = self.matrix
+        structure = (matrix, getattr(matrix, "indices", None), getattr(matrix, "indptr", None))
+        cache = getattr(self, "_position_cache", None)
+
+        if cache is None or any(a is not b for a, b in zip(cache["structure"], structure)):
+            if not (
+                sparse.issparse(matrix) and matrix.format == "csr" and matrix.has_canonical_format
+            ):
+                self._position_cache = None
+                return None
+            # Linear index ``row * n_cols + col`` of every stored element. Sorted, as
+            # canonical CSR has sorted rows and sorted column indices within each row.
+            rows = np.repeat(np.arange(matrix.shape[0], dtype=np.int64), np.diff(matrix.indptr))
+            keys = rows * matrix.shape[1] + matrix.indices
+            cache = self._position_cache = {"structure": structure, "keys": keys, "groups": {}}
+
+        cached = cache["groups"].get(index)
+        if cached is not None and cached[0] is row and cached[1] is col:
+            return cached[2]
+
+        keys = cache["keys"]
+        query = np.asarray(row, dtype=np.int64) * self.matrix.shape[1] + col
+        positions = np.searchsorted(keys, query)
+        if len(query) and (positions.max() >= len(keys) or not (keys[positions] == query).all()):
+            # Some elements aren't in the structure; scipy indexing will insert them
+            positions = None
+        cache["groups"][index] = (row, col, positions)
+        return positions
 
     def __next__(self) -> None:
         self.iterate_indexers()

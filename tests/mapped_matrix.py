@@ -1402,3 +1402,105 @@ def test_nan_preserves_earlier_package_value():
     assert mm.matrix[0, 0] == 5.0  # NaN in scenario → base value preserved
     assert mm.matrix[1, 1] == 99.0  # non-NaN in scenario → overrides base
     assert not np.isnan(mm.matrix.data).any()
+
+
+# --- cached positions in matrix.data (#51) ---
+
+
+def _positions_mm(sum_intra=False, sum_inter=False):
+    dp_base = bwp.create_datapackage(sum_intra_duplicates=sum_intra, sum_inter_duplicates=sum_inter)
+    dp_base.add_persistent_vector(
+        matrix="foo",
+        name="base",
+        indices_array=np.array([(0, 0), (1, 1), (2, 0), (2, 0)], dtype=bwp.INDICES_DTYPE),
+        data_array=np.array([1.0, 2.0, 3.0, 4.0]),
+        flip_array=np.array([False, True, False, False]),
+    )
+    dp_other = bwp.create_datapackage(
+        sum_intra_duplicates=sum_intra, sum_inter_duplicates=sum_inter
+    )
+    dp_other.add_persistent_vector(
+        matrix="foo",
+        name="other",
+        indices_array=np.array([(1, 1), (0, 2), (0, 0)], dtype=bwp.INDICES_DTYPE),
+        data_array=np.array([10.0, 20.0, np.nan]),
+        rescale_array=np.array([0.5, 2.0, 1.0]),
+    )
+    return MappedMatrix(packages=[dp_base, dp_other], matrix="foo", use_arrays=False)
+
+
+@pytest.mark.parametrize(
+    "sum_intra, sum_inter, expected",
+    [
+        # Without intra summing, the last duplicate wins; without inter summing, later
+        # packages overwrite. NaN never overwrites.
+        (False, False, {(0, 0): 1, (1, 1): 5, (2, 0): 4, (0, 2): 40}),
+        (True, False, {(0, 0): 1, (1, 1): 5, (2, 0): 7, (0, 2): 40}),
+        (False, True, {(0, 0): 1, (1, 1): 3, (2, 0): 4, (0, 2): 40}),
+        (True, True, {(0, 0): 1, (1, 1): 3, (2, 0): 7, (0, 2): 40}),
+    ],
+)
+def test_cached_positions_values(sum_intra, sum_inter, expected):
+    mm = _positions_mm(sum_intra, sum_inter)
+    assert mm.matrix.nnz == len(expected)
+    assert mm.matrix.has_canonical_format
+    for (row, col), value in expected.items():
+        assert mm.matrix[row, col] == value
+    # Rebuilding gives the same result, using the cached positions
+    mm.rebuild_matrix()
+    for (row, col), value in expected.items():
+        assert mm.matrix[row, col] == value
+
+
+def test_cached_positions_reused_between_rebuilds():
+    mm = _positions_mm()
+    cache = mm._position_cache
+    assert cache is not None
+    positions = [cache["groups"][i][2] for i in range(len(mm.groups))]
+    mm.rebuild_matrix()
+    assert mm._position_cache is cache
+    for i, pos in enumerate(positions):
+        assert cache["groups"][i][2] is pos
+
+
+def test_cached_positions_matrix_replaced_with_new_structure():
+    mm = _positions_mm(sum_intra=True)
+    expected = mm.matrix.toarray()
+    # Same values but a different structure: an extra stored element, so all positions shift
+    mm.matrix = mm.matrix.tolil()
+    mm.matrix[0, 1] = 100.0
+    mm.matrix = mm.matrix.tocsr()
+    mm.rebuild_matrix()
+    expected[0, 1] = 0.0  # Not written by any group, so zeroed by the rebuild
+    assert np.array_equal(mm.matrix.toarray(), expected)
+
+
+def test_cached_positions_fallback_non_canonical_matrix():
+    mm = _positions_mm(sum_intra=True)
+    expected = mm.matrix.toarray()
+    mm.matrix = mm.matrix.tocsc()
+    mm.rebuild_matrix()
+    assert mm._position_cache is None
+    assert np.array_equal(mm.matrix.toarray(), expected)
+
+
+def test_cached_positions_fallback_structural_zeros_removed():
+    mm = _positions_mm()
+    expected = mm.matrix.toarray()
+    mm.matrix.data[:] = 0
+    mm.matrix.eliminate_zeros()
+    assert mm.matrix.nnz == 0
+    # Elements are missing from the structure, so scipy indexing inserts them
+    with pytest.warns(Warning):
+        mm.rebuild_matrix()
+    assert np.array_equal(mm.matrix.toarray(), expected)
+
+
+def test_calculate_does_not_modify_original_data():
+    mm = _positions_mm()
+    group = mm.group("base")
+    original = group.data_original.copy()
+    next(mm)
+    _, _, data = group.calculate()
+    data *= 100
+    assert np.array_equal(group.data_original, original)
