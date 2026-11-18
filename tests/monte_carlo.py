@@ -76,7 +76,8 @@ def mc_fixture(**kwargs):
 
 def test_basic_distributions():
     dp = mc_fixture()
-    mm = mu.MappedMatrix(packages=[dp], matrix="foo", use_distributions=True)
+    # Seeded so the statistical bounds below don't fail at random
+    mm = mu.MappedMatrix(packages=[dp], matrix="foo", use_distributions=True, seed_override=42)
 
     results = np.zeros((2, 2, 10))
     results[:, :, 0] = mm.matrix.toarray()
