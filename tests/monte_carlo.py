@@ -1,6 +1,8 @@
 import bw_processing as bwp
 import numpy as np
+import pytest
 from stats_arrays import (
+    LognormalUncertainty,
     NormalUncertainty,
     TriangularUncertainty,
     UncertaintyBase,
@@ -75,7 +77,8 @@ def mc_fixture(**kwargs):
 
 def test_basic_distributions():
     dp = mc_fixture()
-    mm = mu.MappedMatrix(packages=[dp], matrix="foo", use_distributions=True)
+    # Seeded so the statistical bounds below don't fail at random
+    mm = mu.MappedMatrix(packages=[dp], matrix="foo", use_distributions=True, seed_override=42)
 
     results = np.zeros((2, 2, 10))
     results[:, :, 0] = mm.matrix.toarray()
@@ -158,9 +161,11 @@ def test_distributions_seed_in_datapackage():
     assert np.allclose(results, other)
 
 
-def test_distributions_reproducible():
+def test_distributions_reproducible_without_derived_seeds():
     dp = mc_fixture(seed=123)
-    mm = mu.MappedMatrix(packages=[dp], matrix="foo", use_distributions=True)
+    mm = mu.MappedMatrix(
+        packages=[dp], matrix="foo", use_distributions=True, derive_group_seeds=False
+    )
 
     results = np.zeros((2, 2, 10))
     results[:, :, 0] = mm.matrix.toarray()
@@ -241,3 +246,180 @@ def test_distributions_only_array_present():
     assert mm.matrix.sum() == 6
     next(mm)
     assert mm.matrix.sum() == 4
+
+
+def test_distributions_reproducible():
+    dp = mc_fixture(seed=123)
+    mm = mu.MappedMatrix(packages=[dp], matrix="foo", use_distributions=True)
+
+    given = [mm.matrix.sum()]
+    for _ in range(9):
+        next(mm)
+        given.append(mm.matrix.sum())
+
+    # Locks in the seed derivation; must not change across platforms or releases
+    expected = np.array(
+        [
+            36.82558217,
+            30.17308861,
+            30.50747818,
+            22.84149632,
+            25.52543653,
+            30.30897259,
+            24.77950859,
+            27.49645739,
+            33.17481873,
+            28.26067776,
+        ]
+    )
+    assert np.allclose(expected, given)
+
+
+def lognormal_fixture(seed=None, name=None):
+    """Two groups, each with one lognormal with identical parameters (issue #50)."""
+    dp = bwp.create_datapackage(seed=seed, name=name)
+    for label, row in (("a", 0), ("b", 1)):
+        dp.add_persistent_vector(
+            matrix="foo",
+            name=label,
+            indices_array=np.array([(row, row)], dtype=bwp.INDICES_DTYPE),
+            data_array=np.array([1.0]),
+            distributions_array=UncertaintyBase.from_dicts(
+                {"loc": 0, "scale": np.log(1.5), "uncertainty_type": LognormalUncertainty.id},
+            ),
+        )
+    return dp
+
+
+def sample_diagonal(mm, n=500):
+    results = np.zeros((n, 2))
+    for i in range(n):
+        if i:
+            next(mm)
+        results[i] = mm.matrix.diagonal()
+    return results
+
+
+def test_derive_group_seeds_removes_correlation():
+    # Regression test for https://github.com/brightway-lca/matrix_utils/issues/50
+    mm = mu.MappedMatrix(
+        packages=[lognormal_fixture()], matrix="foo", use_distributions=True, seed_override=1
+    )
+    results = sample_diagonal(mm)
+    assert abs(np.corrcoef(results.T)[0, 1]) < 0.2
+
+
+def test_no_derive_group_seeds_gives_identical_draws():
+    mm = mu.MappedMatrix(
+        packages=[lognormal_fixture()],
+        matrix="foo",
+        use_distributions=True,
+        seed_override=1,
+        derive_group_seeds=False,
+    )
+    results = sample_diagonal(mm)
+    assert np.allclose(results[:, 0], results[:, 1])
+
+
+def test_derive_group_seeds_reproducible_across_package_names():
+    first = mu.MappedMatrix(
+        packages=[lognormal_fixture(name="one")],
+        matrix="foo",
+        use_distributions=True,
+        seed_override=1,
+    )
+    second = mu.MappedMatrix(
+        packages=[lognormal_fixture(name="two")],
+        matrix="foo",
+        use_distributions=True,
+        seed_override=1,
+    )
+    assert [g.seed for g in first.groups] == [g.seed for g in second.groups]
+    assert len({g.seed for g in first.groups}) == 2
+    assert np.allclose(sample_diagonal(first, 20), sample_diagonal(second, 20))
+
+
+def test_derive_group_seeds_uses_datapackage_seed():
+    mm = mu.MappedMatrix(packages=[lognormal_fixture(seed=5)], matrix="foo", use_distributions=True)
+    seeds = [g.seed for g in mm.groups]
+    assert len(set(seeds)) == 2
+    assert 5 not in seeds
+
+
+def test_derive_group_seeds_repeated_group_labels():
+    mm = mu.MappedMatrix(
+        packages=[lognormal_fixture(), lognormal_fixture()],
+        matrix="foo",
+        use_distributions=True,
+        seed_override=1,
+    )
+    assert len({g.seed for g in mm.groups}) == 4
+
+
+def test_derive_group_seeds_no_seed():
+    mm = mu.MappedMatrix(packages=[lognormal_fixture()], matrix="foo", use_distributions=True)
+    assert [g.seed for g in mm.groups] == [None, None]
+
+
+def test_derive_group_seeds_mapped_matrix_dict_keys_independent():
+    # Same packages and group labels under different keys must not share seeds
+    mmd = mu.MappedMatrixDict(
+        packages={"x": [lognormal_fixture()], "y": [lognormal_fixture()]},
+        matrix="foo",
+        row_mapper=mu.ArrayMapper(array=np.array([0, 1])),
+        diagonal=True,
+        use_distributions=True,
+        seed_override=1,
+    )
+    seeds = {key: [g.seed for g in mm.groups] for key, mm in mmd.items()}
+    assert len(set(seeds["x"]) | set(seeds["y"])) == 4
+
+    results = np.zeros((200, 2))
+    for i in range(200):
+        if i:
+            next(mmd)
+        results[i] = mmd["x"].matrix.diagonal()[0], mmd["y"].matrix.diagonal()[0]
+    assert abs(np.corrcoef(results.T)[0, 1]) < 0.2
+
+
+def test_derive_group_seeds_no_distributions_keeps_base_seed():
+    mm = mu.MappedMatrix(packages=[lognormal_fixture()], matrix="foo", seed_override=1)
+    assert [g.seed for g in mm.groups] == [1, 1]
+
+
+def test_derive_group_seeds_sequence_seed():
+    kwargs = dict(matrix="foo", use_distributions=True, seed_override=[1, 2])
+    first = mu.MappedMatrix(packages=[lognormal_fixture()], **kwargs)
+    second = mu.MappedMatrix(packages=[lognormal_fixture()], **kwargs)
+    assert len({g.seed for g in first.groups}) == 2
+    assert np.allclose(sample_diagonal(first, 20), sample_diagonal(second, 20))
+
+
+@pytest.mark.parametrize("derive", [True, False])
+@pytest.mark.parametrize("seed", [2**32, -1])
+def test_derive_group_seeds_invalid_seed_rejected_either_way(seed, derive):
+    with pytest.raises(ValueError):
+        mu.MappedMatrix(
+            packages=[lognormal_fixture()],
+            matrix="foo",
+            use_distributions=True,
+            seed_override=seed,
+            derive_group_seeds=derive,
+        )
+
+
+def test_derive_seed_labels_unambiguous():
+    from matrix_utils.utils import derive_seed
+
+    assert derive_seed(1, "a\x1fb", "c") != derive_seed(1, "a", "b\x1fc")
+    assert derive_seed(1, "ab", "c") != derive_seed(1, "a", "bc")
+    assert derive_seed(1, "a", "") != derive_seed(1, "a")
+
+
+def test_derive_seed_deterministic():
+    from matrix_utils.utils import derive_seed
+
+    assert derive_seed(1, "foo", "a") == derive_seed(1, "foo", "a")
+    assert derive_seed(1, "foo", "a") != derive_seed(1, "foo", "b")
+    assert derive_seed(1, "foo", "a") != derive_seed(2, "foo", "a")
+    assert 0 <= derive_seed(1, "foo", "a") < 2**32

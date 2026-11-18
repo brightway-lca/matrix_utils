@@ -452,6 +452,7 @@ def test_matrix_building_multiple_dps_yes_distributions_no_arrays_sum_both_withi
         use_vectors=True,
         use_arrays=False,
         use_distributions=True,
+        derive_group_seeds=False,
     )
 
     sample = [0.87454012, 2.45071431, 1.0, 3.23199394]
@@ -475,6 +476,7 @@ def test_matrix_building_multiple_dps_yes_distributions_no_arrays_sum_inter_only
         use_vectors=True,
         use_arrays=False,
         use_distributions=True,
+        derive_group_seeds=False,
     )
 
     sample = [0.87454012, 2.45071431, 1.0, 3.23199394]
@@ -496,6 +498,7 @@ def test_matrix_building_multiple_dps_yes_distributions_no_arrays_sum_intra_only
         use_vectors=True,
         use_arrays=False,
         use_distributions=True,
+        derive_group_seeds=False,
     )
 
     sample = [0.87454012, 2.45071431, 1.0, 3.23199394]
