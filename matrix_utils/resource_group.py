@@ -426,9 +426,9 @@ class ResourceGroup:
         if self._multiplier is not None:
             data *= self._multiplier
 
-        # The data before aggregation. Aggregation creates a new array, and ``data`` isn't
-        # modified after this point, so no copy is needed.
-        self.data_current = data
+        # Second copy because we want to store the data before aggregation, and the
+        # returned array shouldn't share memory with ``data_current``
+        self.data_current = data.copy()
 
         if self.aggregate:
             # ``bincount`` always sums in float64; return the input dtype, as before
