@@ -1407,7 +1407,7 @@ def test_nan_preserves_earlier_package_value():
 # --- cached positions in matrix.data (#51) ---
 
 
-def _positions_mm(sum_intra=False, sum_inter=False):
+def _positions_mm(sum_intra=False, sum_inter=False, **kwargs):
     dp_base = bwp.create_datapackage(sum_intra_duplicates=sum_intra, sum_inter_duplicates=sum_inter)
     dp_base.add_persistent_vector(
         matrix="foo",
@@ -1426,7 +1426,7 @@ def _positions_mm(sum_intra=False, sum_inter=False):
         data_array=np.array([10.0, 20.0, np.nan]),
         rescale_array=np.array([0.5, 2.0, 1.0]),
     )
-    return MappedMatrix(packages=[dp_base, dp_other], matrix="foo", use_arrays=False)
+    return MappedMatrix(packages=[dp_base, dp_other], matrix="foo", use_arrays=False, **kwargs)
 
 
 @pytest.mark.parametrize(
@@ -1484,8 +1484,65 @@ def test_cached_positions_fallback_non_canonical_matrix():
     assert np.array_equal(mm.matrix.toarray(), expected)
 
 
-def test_cached_positions_fallback_structural_zeros_removed():
+def test_fixed_structure_default_read_only():
     mm = _positions_mm()
+    assert mm.fixed_structure
+    assert not mm.matrix.indices.flags.writeable
+    assert not mm.matrix.indptr.flags.writeable
+    assert mm.matrix.data.flags.writeable
+    with pytest.raises(ValueError):
+        mm.matrix.indices[0] = 1
+    with pytest.raises(ValueError):
+        mm.matrix.eliminate_zeros()
+    # Copies can be changed freely
+    copy = mm.matrix.copy()
+    copy.eliminate_zeros()
+    # Rebuilding and iterating still work
+    next(mm)
+    assert mm.matrix[0, 2] == 40
+
+
+def test_fixed_structure_insertion_replaces_arrays():
+    mm = _positions_mm()
+    expected = mm.matrix.toarray()
+    with pytest.warns(Warning):
+        mm.matrix[0, 1] = 100.0
+    mm.rebuild_matrix()
+    expected[0, 1] = 0.0  # Not written by any group, so zeroed by the rebuild
+    assert np.array_equal(mm.matrix.toarray(), expected)
+
+
+def test_fixed_structure_false_writable():
+    mm = _positions_mm(fixed_structure=False)
+    assert not mm.fixed_structure
+    assert mm.matrix.indices.flags.writeable
+    assert mm.matrix.indptr.flags.writeable
+
+
+def test_fixed_structure_mapped_matrix_dict():
+    from matrix_utils import MappedMatrixDict
+
+    dp = bwp.create_datapackage()
+    dp.add_persistent_vector(
+        matrix="foo",
+        name="v",
+        indices_array=np.array([(0, 0), (1, 1)], dtype=bwp.INDICES_DTYPE),
+        data_array=np.array([1.0, 2.0]),
+    )
+    mapper = ArrayMapper(array=np.array([0, 1]))
+    for flag in (True, False):
+        mmd = MappedMatrixDict(
+            packages={"a": [dp]},
+            matrix="foo",
+            row_mapper=mapper,
+            col_mapper=mapper,
+            fixed_structure=flag,
+        )
+        assert mmd["a"].matrix.indices.flags.writeable is not flag
+
+
+def test_cached_positions_fallback_structural_zeros_removed():
+    mm = _positions_mm(fixed_structure=False)
     expected = mm.matrix.toarray()
     mm.matrix.data[:] = 0
     mm.matrix.eliminate_zeros()

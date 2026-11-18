@@ -35,6 +35,7 @@ class MappedMatrix:
         custom_filter: Optional[Callable] = None,
         empty_ok: bool = False,
         derive_group_seeds: bool = True,
+        fixed_structure: bool = True,
     ):
         """A scipy sparse matrix handler which takes in ``bw_processing`` data
         packages. Row and column ids are mapped to matrix indices, and a matrix is
@@ -107,6 +108,16 @@ class MappedMatrix:
             rank-correlated samples (see
             https://github.com/brightway-lca/matrix_utils/issues/50). Has no effect
             when no seed is given, as each RNG is then seeded from OS entropy.
+        fixed_structure : bool
+            Rebuilding the matrix writes into ``matrix.data`` at cached positions,
+            which depend on the sparsity structure (``matrix.indices`` and
+            ``matrix.indptr``). If True, these two arrays are made read-only, so
+            changing them in place (e.g. ``matrix.eliminate_zeros()``) raises
+            ``ValueError``; work on ``matrix.copy()`` instead. Operations which replace
+            these arrays, like inserting new elements or ``setdiag()``, still work, and
+            the positions are recomputed. If False, the arrays stay writable. Most scipy
+            methods which change the structure replace at least one of the arrays, so
+            this is detected, but writing directly into ``indices`` or ``indptr`` isn't.
 
         """
         self.seed_override = seed_override
@@ -245,6 +256,10 @@ class MappedMatrix:
         # positions in ``matrix.data`` once, and then write into ``matrix.data`` directly.
         self.matrix.sum_duplicates()
         self.matrix.sort_indices()
+        self.fixed_structure = fixed_structure
+        if fixed_structure:
+            self.matrix.indices.flags.writeable = False
+            self.matrix.indptr.flags.writeable = False
         self._position_cache = None
 
         self.rebuild_matrix()
@@ -307,7 +322,8 @@ class MappedMatrix:
         Positions are computed once and cached. The cache is keyed on the matrix
         structure (the matrix object and its ``indices`` and ``indptr`` arrays) and the
         group's row and column arrays, so it is recomputed if any of these are
-        replaced. Changing the structure arrays in place isn't detected.
+        replaced. Writing directly into the structure arrays isn't detected; with
+        ``fixed_structure`` they are read-only, so this isn't possible.
 
         Returns ``None`` (use scipy's slower indexing) if the matrix isn't CSR in
         canonical format, or if not all elements are already in the matrix structure.
