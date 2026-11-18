@@ -1,8 +1,23 @@
+import hashlib
 from typing import Optional
 
 import numpy as np
 
 from matrix_utils.errors import AllArraysEmpty
+
+
+def derive_seed(seed: int, *labels: str) -> int:
+    """Deterministically derive a new RNG seed from ``seed`` and some string ``labels``.
+
+    The same inputs always give the same output, across Python processes and platforms
+    (we use ``hashlib`` instead of the salted builtin ``hash``). Different labels give
+    statistically independent seeds via ``numpy.random.SeedSequence``.
+
+    Returns an integer in ``[0, 2**32)``, as required by ``numpy.random.RandomState``.
+    """
+    digest = hashlib.sha256("\x1f".join(labels).encode("utf-8")).digest()
+    label_entropy = int.from_bytes(digest[:16], "little")
+    return int(np.random.SeedSequence([int(seed), label_entropy]).generate_state(1)[0])
 
 
 def filter_groups_for_packages(

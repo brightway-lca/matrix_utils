@@ -4,6 +4,7 @@
 
 * Drop support for Python 3.9 (end-of-life since October 2025, and no longer available on the `ubuntu-latest` GitHub runner)
 * Drop support for Python 3.10 (end-of-life since October 2026)
+* Fix [#50](https://github.com/brightway-lca/matrix_utils/issues/50): New `derive_group_seeds` argument for `MappedMatrix` and `MappedMatrixDict`, default `True`. Each resource group now gets its own RNG seed, derived deterministically from the base seed (`seed_override` or the datapackage `seed`), the matrix label, and the group label. Previously every resource group was seeded identically, so groups with the same number of uncertain parameters of each distribution type drew perfectly rank-correlated samples. Results remain reproducible, but **a given seed now produces different samples than in previous releases**; pass `derive_group_seeds=False` to get the old behaviour. Indexer seeding for array datapackages is unchanged. See also [brightway2-calc #189](https://github.com/brightway-lca/brightway2-calc/issues/189).
 
 ## [0.9] - 2026-07-12
 

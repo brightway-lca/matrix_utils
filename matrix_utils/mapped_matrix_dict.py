@@ -51,6 +51,7 @@ class MappedMatrixDict(Mapping):
         empty_ok: bool = False,
         sequential: bool = False,
         matrix_class: Type[MappedMatrix] = MappedMatrix,
+        derive_group_seeds: bool = True,
         **kwargs,
     ):
         """A thin wrapper around a dict of `MappedMatrix` objects. See its docstring
@@ -66,7 +67,9 @@ class MappedMatrixDict(Mapping):
         set and access the individual resource group `indexer` attributes.
 
         Because the same indexer is used for all datapackages, individual `seed` values
-        are ignored. Use `seed_override` to set a global RNG seed.
+        are ignored for indexing. Use `seed_override` to set a global RNG seed. RNGs for
+        distributions still get a separate seed per resource group (derived from the
+        global seed) unless `derive_group_seeds` is `False`.
 
         The `empty_ok` flag applies to **all matrices** - if any of the matrices have
         a valid data value no error will be raised. In practice this flag should have
@@ -107,6 +110,8 @@ class MappedMatrixDict(Mapping):
             datapackages
         matrix_class : MappedMatrix
             `MappedMatrix` class to use. Can be a subclass of `MappedMatrix`.
+        derive_group_seeds : bool
+            Passed to each `MappedMatrix`; see its docstring.
         """
         self.matrix = matrix
         self.row_mapper = row_mapper
@@ -145,6 +150,7 @@ class MappedMatrixDict(Mapping):
                 transpose=transpose,
                 custom_filter=custom_filter,
                 empty_ok=empty_ok,
+                derive_group_seeds=derive_group_seeds,
                 **kwargs,
             )
             for key, packages in packages.items()
