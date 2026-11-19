@@ -1,3 +1,4 @@
+import warnings
 from typing import Optional
 
 import numpy as np
@@ -8,16 +9,36 @@ from matrix_utils.errors import AllArraysEmpty
 def filter_groups_for_packages(
     packages, matrix_label, use_vectors, use_arrays, use_distributions
 ) -> dict:
-    return {
-        package: [
+    result = {}
+    for obj in packages:
+        package = obj.filter_by_attribute("matrix", matrix_label)
+        warn_ungrouped_resources(package, matrix_label)
+        result[package] = [
             (group_label, filtered_package)
             for group_label, filtered_package in package.groups.items()
             if has_relevant_data(
                 group_label, filtered_package, use_vectors, use_arrays, use_distributions
             )
         ]
-        for package in [obj.filter_by_attribute("matrix", matrix_label) for obj in packages]
-    }
+    return result
+
+
+def warn_ungrouped_resources(package, matrix_label) -> None:
+    """Warn about resources for ``matrix_label`` that have no group label.
+
+    These can't be part of a resource group, so they are ignored when building the
+    matrix."""
+    # Same test as ``Datapackage.groups``, which skips these resources
+    ungrouped = [res.get("name") for res in package.resources if not res.get("group")]
+    if ungrouped:
+        warnings.warn(
+            "Ignoring {} resource(s) for matrix '{}' without a group label: {}".format(
+                len(ungrouped), matrix_label, ungrouped
+            ),
+            UserWarning,
+            # Point at the code that created the `MappedMatrix`
+            stacklevel=4,
+        )
 
 
 def has_relevant_data(group_label, package, use_vectors, use_arrays, use_distributions) -> bool:

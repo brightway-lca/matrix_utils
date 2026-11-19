@@ -1,3 +1,5 @@
+import warnings
+
 import bw_processing as bwp
 import numpy as np
 import pytest
@@ -175,5 +177,17 @@ def test_filter_groups_for_packages_resource_without_group():
         0, {"name": "orphan", "matrix": "foo", "kind": "data", "category": "vector"}
     )
     dp.data.insert(0, np.array([0]))
-    result = filter_groups_for_packages([dp], "foo", True, False, False)
+    with pytest.warns(UserWarning, match="without a group label: \\['orphan'\\]"):
+        result = filter_groups_for_packages([dp], "foo", True, False, False)
     assert [label for label, _ in next(iter(result.values()))] == ["vector"]
+
+
+def test_filter_groups_for_packages_no_warning_for_other_matrices():
+    dp = create_dp(True, False, False)
+    dp.resources.insert(
+        0, {"name": "orphan", "matrix": "bar", "kind": "data", "category": "vector"}
+    )
+    dp.data.insert(0, np.array([0]))
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        filter_groups_for_packages([dp], "foo", True, False, False)
