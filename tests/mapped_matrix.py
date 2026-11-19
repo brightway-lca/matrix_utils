@@ -1561,3 +1561,101 @@ def test_calculate_does_not_modify_original_data():
     _, _, data = group.calculate()
     data *= 100
     assert np.array_equal(group.data_original, original)
+
+
+# --- review fixes for #55 ---
+
+
+def test_fixed_structure_relocked_after_insertion():
+    mm = _positions_mm()
+    expected = mm.matrix.toarray()
+    with pytest.warns(Warning):
+        mm.matrix[0, 1] = 100.0
+    # Scipy replaced the structure arrays with writable ones
+    assert mm.matrix.indices.flags.writeable
+    cache = mm._position_cache
+    mm.rebuild_matrix()
+    assert not mm.matrix.indices.flags.writeable
+    assert not mm.matrix.indptr.flags.writeable
+    assert mm._position_cache is not cache
+    expected[0, 1] = 0.0
+    assert np.array_equal(mm.matrix.toarray(), expected)
+
+
+def test_fixed_structure_relocked_after_deepcopy():
+    from copy import deepcopy
+
+    mm = deepcopy(_positions_mm())
+    expected = mm.matrix.toarray()
+    mm.rebuild_matrix()
+    assert not mm.matrix.indices.flags.writeable
+    assert not mm.matrix.indptr.flags.writeable
+    assert np.array_equal(mm.matrix.toarray(), expected)
+
+
+def test_fixed_structure_in_place_change_while_writable():
+    mm = _positions_mm()
+    expected = mm.matrix.toarray()
+    # A writable copy with the same structure
+    mm.matrix = mm.matrix.copy()
+    row_0 = slice(mm.matrix.indptr[0], mm.matrix.indptr[1])
+    assert list(mm.matrix.indices[row_0]) == [0, 2]
+    # Move element (0, 2) to (0, 1) in place; array identities don't change
+    mm.matrix.indices[row_0] = [0, 1]
+    with pytest.warns(Warning):
+        # Positions are recomputed, and the missing (0, 2) is inserted again
+        mm.rebuild_matrix()
+    assert np.array_equal(mm.matrix.toarray(), expected)
+
+
+def test_fixed_structure_non_canonical_matrix_not_locked():
+    mm = _positions_mm()
+    expected = mm.matrix.toarray()
+    matrix = mm.matrix.copy()
+    row_0 = slice(matrix.indptr[0], matrix.indptr[1])
+    matrix.indices[row_0] = [2, 0]
+    matrix.has_sorted_indices = False
+    mm.matrix = matrix
+    mm.rebuild_matrix()
+    # Scipy must be able to sort in place
+    assert mm.matrix.indices.flags.writeable
+    assert np.array_equal(mm.matrix.toarray(), expected)
+
+
+@pytest.mark.parametrize("length", [2, 5])
+@pytest.mark.parametrize("masked", [False, True])
+def test_calculate_wrong_length_vector(length, masked):
+    kwargs = {"custom_filter": lambda array: array["row"] < 2} if masked else {}
+    mm = _positions_mm(**kwargs)
+    group = mm.group("base")
+    assert len(group.get_indices_data()) == 4
+    with pytest.raises(ValueError, match="elements"):
+        group.calculate(vector=np.arange(float(length)))
+    group.calculate(vector=np.arange(4.0))
+
+
+def test_custom_filter_returns_list():
+    mm_list = _positions_mm(custom_filter=lambda array: [bool(x) for x in array["row"] < 2])
+    mm_array = _positions_mm(custom_filter=lambda array: array["row"] < 2)
+    assert mm_array.n_elements_dropped == 2
+    assert np.array_equal(mm_list.matrix.toarray(), mm_array.matrix.toarray())
+    assert np.array_equal(mm_list.input_data_vector(), mm_array.input_data_vector(), equal_nan=True)
+
+
+def test_flip_rescale_fixed_at_mapping_time():
+    mm = _positions_mm()
+    base, other = mm.group("base"), mm.group("other")
+    expected = mm.matrix.toarray()
+    flip, rescale = mm.input_flip_vector(), mm.input_rescale_vector()
+    # Changing the datapackage arrays after mapping is ignored everywhere
+    base.get_resource_by_suffix("flip")[:] = True
+    other.get_resource_by_suffix("rescale")[:] = 100.0
+    mm.rebuild_matrix()
+    assert np.array_equal(mm.matrix.toarray(), expected)
+    assert np.array_equal(mm.input_flip_vector(), flip)
+    assert np.array_equal(mm.input_rescale_vector(), rescale)
+    assert np.array_equal(base.flip, [False, True, False, False])
+    with pytest.raises(KeyError):
+        base.rescale
+    with pytest.raises(KeyError):
+        other.flip
