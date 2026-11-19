@@ -1,5 +1,5 @@
-import warnings
 from typing import Optional
+from warnings import warn
 
 import numpy as np
 
@@ -31,7 +31,7 @@ def warn_ungrouped_resources(package, matrix_label) -> None:
     # Same test as ``Datapackage.groups``, which skips these resources
     ungrouped = [res.get("name") for res in package.resources if not res.get("group")]
     if ungrouped:
-        warnings.warn(
+        warn(
             "Ignoring {} resource(s) for matrix '{}' without a group label: {}".format(
                 len(ungrouped), matrix_label, ungrouped
             ),
