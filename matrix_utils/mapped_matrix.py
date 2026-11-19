@@ -35,6 +35,7 @@ class MappedMatrix:
         custom_filter: Optional[Callable] = None,
         empty_ok: bool = False,
         derive_group_seeds: bool = True,
+        fixed_structure: bool = True,
     ):
         """A scipy sparse matrix handler which takes in ``bw_processing`` data
         packages. Row and column ids are mapped to matrix indices, and a matrix is
@@ -107,6 +108,18 @@ class MappedMatrix:
             rank-correlated samples (see
             https://github.com/brightway-lca/matrix_utils/issues/50). Has no effect
             when no seed is given, as each RNG is then seeded from OS entropy.
+        fixed_structure : bool
+            Rebuilding the matrix writes into ``matrix.data`` at cached positions,
+            which depend on the sparsity structure (``matrix.indices`` and
+            ``matrix.indptr``). If True, these two arrays are made read-only, so
+            changing them in place (e.g. ``matrix.eliminate_zeros()``) raises
+            ``ValueError``; work on ``matrix.copy()`` instead. Operations which replace
+            these arrays, like inserting new elements or ``setdiag()``, still work. The
+            new arrays are made read-only at the next rebuild, and the positions are
+            recomputed. The same applies if you assign a new canonical CSR matrix to
+            ``.matrix``. If False, the arrays stay writable. Most scipy
+            methods which change the structure replace at least one of the arrays, so
+            this is detected, but writing directly into ``indices`` or ``indptr`` isn't.
 
         """
         self.seed_override = seed_override
@@ -241,6 +254,12 @@ class MappedMatrix:
             dimensions,
             dtype=np.float64,
         ).tocsr()
+        # Canonical form (sorted indices, no duplicates) lets us find each group's
+        # positions in ``matrix.data`` once, and then write into ``matrix.data`` directly.
+        self.matrix.sum_duplicates()
+        self.matrix.sort_indices()
+        self.fixed_structure = fixed_structure
+        self._position_cache = None
 
         self.rebuild_matrix()
 
@@ -270,16 +289,94 @@ class MappedMatrix:
         # save some nanoseconds, but it led to weird Numpy dtype errors and
         # wasn't worth thinking about too much for very little gain.
         self.matrix.data *= 0
-        for group in self.groups:
+        if self.fixed_structure:
+            self._lock_structure()
+        for index, group in enumerate(self.groups):
             row, col, data = group.calculate()
+            positions = self._data_positions(index, row, col)
             # NaN means "no data insertion" — skip those elements so earlier
             # packages' values are preserved rather than overwritten with NaN.
-            nan_mask = ~np.isnan(data)
-            row, col, data = row[nan_mask], col[nan_mask], data[nan_mask]
-            if group.package.metadata["sum_inter_duplicates"]:
-                self.matrix[row, col] += data
+            nan_mask = np.isnan(data)
+            if nan_mask.any():
+                keep = ~nan_mask
+                data = data[keep]
+                if positions is None:
+                    row, col = row[keep], col[keep]
+                else:
+                    positions = positions[keep]
+            if positions is None:
+                # Fallback if the matrix structure doesn't allow cached positions;
+                # scipy searches for each (row, col) pair on every call.
+                if group.package.metadata["sum_inter_duplicates"]:
+                    self.matrix[row, col] += data
+                else:
+                    self.matrix[row, col] = data
+            elif group.package.metadata["sum_inter_duplicates"]:
+                self.matrix.data[positions] += data
             else:
-                self.matrix[row, col] = data
+                self.matrix.data[positions] = data
+
+    def _lock_structure(self) -> None:
+        """Make the structure arrays of a canonical CSR matrix read-only.
+
+        Scipy replaces these arrays with new, writable ones when the structure changes
+        (e.g. inserting elements), and copies are writable too. Writable arrays could
+        have been changed in place, so the cached positions are dropped as well."""
+        matrix = self.matrix
+        if not (sparse.issparse(matrix) and matrix.format == "csr"):
+            return
+        if not matrix.has_canonical_format:
+            # Scipy needs to sort or sum duplicates in place before it can set values
+            return
+        if matrix.indices.flags.writeable or matrix.indptr.flags.writeable:
+            self._position_cache = None
+            matrix.indices.flags.writeable = False
+            matrix.indptr.flags.writeable = False
+
+    def _data_positions(self, index: int, row: np.ndarray, col: np.ndarray) -> Optional[np.ndarray]:
+        """Return the positions in ``self.matrix.data`` of the (``row``, ``col``) elements
+        of group number ``index``, or ``None`` if they can't be used.
+
+        Positions are computed once and cached. The cache is keyed on the matrix
+        structure (the matrix object and its ``indices`` and ``indptr`` arrays) and the
+        group's row and column arrays, so it is recomputed if any of these are
+        replaced. Writing directly into the structure arrays isn't detected. With
+        ``fixed_structure`` they are read-only, and positions cached while they were
+        writable are dropped at the start of each rebuild (see ``_lock_structure``).
+
+        Returns ``None`` (use scipy's slower indexing) if the matrix isn't CSR in
+        canonical format, or if not all elements are already in the matrix structure.
+        """
+        matrix = self.matrix
+        if not (sparse.issparse(matrix) and matrix.format == "csr"):
+            self._position_cache = None
+            return None
+
+        structure = (matrix, matrix.indices, matrix.indptr)
+        cache = self._position_cache
+
+        if cache is None or any(a is not b for a, b in zip(cache["structure"], structure)):
+            if not matrix.has_canonical_format:
+                self._position_cache = None
+                return None
+            # Linear index ``row * n_cols + col`` of every stored element. Sorted, as
+            # canonical CSR has sorted rows and sorted column indices within each row.
+            rows = np.repeat(np.arange(matrix.shape[0], dtype=np.int64), np.diff(matrix.indptr))
+            keys = rows * matrix.shape[1] + matrix.indices
+            cache = self._position_cache = {"structure": structure, "keys": keys, "groups": {}}
+
+        cached = cache["groups"].get(index)
+        if cached is not None and cached[0] is row and cached[1] is col:
+            return cached[2]
+
+        keys = cache["keys"]
+        query = np.asarray(row, dtype=np.int64) * self.matrix.shape[1] + col
+        positions = np.searchsorted(keys, query)
+        if len(query) and (positions.max() >= len(keys) or not (keys[positions] == query).all()):
+            # Some elements aren't in the structure; scipy indexing will insert them
+            positions = None
+        cache["groups"][index] = (row, col, positions)
+        return positions
 
     def __next__(self) -> None:
         self.iterate_indexers()

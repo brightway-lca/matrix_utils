@@ -1402,3 +1402,260 @@ def test_nan_preserves_earlier_package_value():
     assert mm.matrix[0, 0] == 5.0  # NaN in scenario → base value preserved
     assert mm.matrix[1, 1] == 99.0  # non-NaN in scenario → overrides base
     assert not np.isnan(mm.matrix.data).any()
+
+
+# --- cached positions in matrix.data (#51) ---
+
+
+def _positions_mm(sum_intra=False, sum_inter=False, **kwargs):
+    dp_base = bwp.create_datapackage(sum_intra_duplicates=sum_intra, sum_inter_duplicates=sum_inter)
+    dp_base.add_persistent_vector(
+        matrix="foo",
+        name="base",
+        indices_array=np.array([(0, 0), (1, 1), (2, 0), (2, 0)], dtype=bwp.INDICES_DTYPE),
+        data_array=np.array([1.0, 2.0, 3.0, 4.0]),
+        flip_array=np.array([False, True, False, False]),
+    )
+    dp_other = bwp.create_datapackage(
+        sum_intra_duplicates=sum_intra, sum_inter_duplicates=sum_inter
+    )
+    dp_other.add_persistent_vector(
+        matrix="foo",
+        name="other",
+        indices_array=np.array([(1, 1), (0, 2), (0, 0)], dtype=bwp.INDICES_DTYPE),
+        data_array=np.array([10.0, 20.0, np.nan]),
+        rescale_array=np.array([0.5, 2.0, 1.0]),
+    )
+    return MappedMatrix(packages=[dp_base, dp_other], matrix="foo", use_arrays=False, **kwargs)
+
+
+@pytest.mark.parametrize(
+    "sum_intra, sum_inter, expected",
+    [
+        # Without intra summing, the last duplicate wins; without inter summing, later
+        # packages overwrite. NaN never overwrites.
+        (False, False, {(0, 0): 1, (1, 1): 5, (2, 0): 4, (0, 2): 40}),
+        (True, False, {(0, 0): 1, (1, 1): 5, (2, 0): 7, (0, 2): 40}),
+        (False, True, {(0, 0): 1, (1, 1): 3, (2, 0): 4, (0, 2): 40}),
+        (True, True, {(0, 0): 1, (1, 1): 3, (2, 0): 7, (0, 2): 40}),
+    ],
+)
+def test_cached_positions_values(sum_intra, sum_inter, expected):
+    mm = _positions_mm(sum_intra, sum_inter)
+    assert mm.matrix.nnz == len(expected)
+    assert mm.matrix.has_canonical_format
+    for (row, col), value in expected.items():
+        assert mm.matrix[row, col] == value
+    # Rebuilding gives the same result, using the cached positions
+    mm.rebuild_matrix()
+    for (row, col), value in expected.items():
+        assert mm.matrix[row, col] == value
+
+
+def test_cached_positions_reused_between_rebuilds():
+    mm = _positions_mm()
+    cache = mm._position_cache
+    assert cache is not None
+    positions = [cache["groups"][i][2] for i in range(len(mm.groups))]
+    mm.rebuild_matrix()
+    assert mm._position_cache is cache
+    for i, pos in enumerate(positions):
+        assert cache["groups"][i][2] is pos
+
+
+def test_cached_positions_matrix_replaced_with_new_structure():
+    mm = _positions_mm(sum_intra=True)
+    expected = mm.matrix.toarray()
+    # Same values but a different structure: an extra stored element, so all positions shift
+    mm.matrix = mm.matrix.tolil()
+    mm.matrix[0, 1] = 100.0
+    mm.matrix = mm.matrix.tocsr()
+    mm.rebuild_matrix()
+    expected[0, 1] = 0.0  # Not written by any group, so zeroed by the rebuild
+    assert np.array_equal(mm.matrix.toarray(), expected)
+
+
+def test_cached_positions_fallback_non_canonical_matrix():
+    mm = _positions_mm(sum_intra=True)
+    expected = mm.matrix.toarray()
+    mm.matrix = mm.matrix.tocsc()
+    mm.rebuild_matrix()
+    assert mm._position_cache is None
+    assert np.array_equal(mm.matrix.toarray(), expected)
+
+
+def test_fixed_structure_default_read_only():
+    mm = _positions_mm()
+    assert mm.fixed_structure
+    assert not mm.matrix.indices.flags.writeable
+    assert not mm.matrix.indptr.flags.writeable
+    assert mm.matrix.data.flags.writeable
+    with pytest.raises(ValueError):
+        mm.matrix.indices[0] = 1
+    with pytest.raises(ValueError):
+        mm.matrix.eliminate_zeros()
+    # Copies can be changed freely
+    copy = mm.matrix.copy()
+    copy.eliminate_zeros()
+    # Rebuilding and iterating still work
+    next(mm)
+    assert mm.matrix[0, 2] == 40
+
+
+def test_fixed_structure_insertion_replaces_arrays():
+    mm = _positions_mm()
+    expected = mm.matrix.toarray()
+    with pytest.warns(Warning):
+        mm.matrix[0, 1] = 100.0
+    mm.rebuild_matrix()
+    expected[0, 1] = 0.0  # Not written by any group, so zeroed by the rebuild
+    assert np.array_equal(mm.matrix.toarray(), expected)
+
+
+def test_fixed_structure_false_writable():
+    mm = _positions_mm(fixed_structure=False)
+    assert not mm.fixed_structure
+    assert mm.matrix.indices.flags.writeable
+    assert mm.matrix.indptr.flags.writeable
+
+
+def test_fixed_structure_mapped_matrix_dict():
+    from matrix_utils import MappedMatrixDict
+
+    dp = bwp.create_datapackage()
+    dp.add_persistent_vector(
+        matrix="foo",
+        name="v",
+        indices_array=np.array([(0, 0), (1, 1)], dtype=bwp.INDICES_DTYPE),
+        data_array=np.array([1.0, 2.0]),
+    )
+    mapper = ArrayMapper(array=np.array([0, 1]))
+    for flag in (True, False):
+        mmd = MappedMatrixDict(
+            packages={"a": [dp]},
+            matrix="foo",
+            row_mapper=mapper,
+            col_mapper=mapper,
+            fixed_structure=flag,
+        )
+        assert mmd["a"].matrix.indices.flags.writeable is not flag
+
+
+def test_cached_positions_fallback_structural_zeros_removed():
+    mm = _positions_mm(fixed_structure=False)
+    expected = mm.matrix.toarray()
+    mm.matrix.data[:] = 0
+    mm.matrix.eliminate_zeros()
+    assert mm.matrix.nnz == 0
+    # Elements are missing from the structure, so scipy indexing inserts them
+    with pytest.warns(Warning):
+        mm.rebuild_matrix()
+    assert np.array_equal(mm.matrix.toarray(), expected)
+
+
+def test_calculate_does_not_modify_original_data():
+    mm = _positions_mm()
+    group = mm.group("base")
+    original = group.data_original.copy()
+    next(mm)
+    _, _, data = group.calculate()
+    data *= 100
+    assert np.array_equal(group.data_original, original)
+
+
+# --- review fixes for #55 ---
+
+
+def test_fixed_structure_relocked_after_insertion():
+    mm = _positions_mm()
+    expected = mm.matrix.toarray()
+    with pytest.warns(Warning):
+        mm.matrix[0, 1] = 100.0
+    # Scipy replaced the structure arrays with writable ones
+    assert mm.matrix.indices.flags.writeable
+    cache = mm._position_cache
+    mm.rebuild_matrix()
+    assert not mm.matrix.indices.flags.writeable
+    assert not mm.matrix.indptr.flags.writeable
+    assert mm._position_cache is not cache
+    expected[0, 1] = 0.0
+    assert np.array_equal(mm.matrix.toarray(), expected)
+
+
+def test_fixed_structure_relocked_after_deepcopy():
+    from copy import deepcopy
+
+    mm = deepcopy(_positions_mm())
+    expected = mm.matrix.toarray()
+    mm.rebuild_matrix()
+    assert not mm.matrix.indices.flags.writeable
+    assert not mm.matrix.indptr.flags.writeable
+    assert np.array_equal(mm.matrix.toarray(), expected)
+
+
+def test_fixed_structure_in_place_change_while_writable():
+    mm = _positions_mm()
+    expected = mm.matrix.toarray()
+    # A writable copy with the same structure
+    mm.matrix = mm.matrix.copy()
+    row_0 = slice(mm.matrix.indptr[0], mm.matrix.indptr[1])
+    assert list(mm.matrix.indices[row_0]) == [0, 2]
+    # Move element (0, 2) to (0, 1) in place; array identities don't change
+    mm.matrix.indices[row_0] = [0, 1]
+    with pytest.warns(Warning):
+        # Positions are recomputed, and the missing (0, 2) is inserted again
+        mm.rebuild_matrix()
+    assert np.array_equal(mm.matrix.toarray(), expected)
+
+
+def test_fixed_structure_non_canonical_matrix_not_locked():
+    mm = _positions_mm()
+    expected = mm.matrix.toarray()
+    matrix = mm.matrix.copy()
+    row_0 = slice(matrix.indptr[0], matrix.indptr[1])
+    matrix.indices[row_0] = [2, 0]
+    matrix.has_sorted_indices = False
+    mm.matrix = matrix
+    mm.rebuild_matrix()
+    # Scipy must be able to sort in place
+    assert mm.matrix.indices.flags.writeable
+    assert np.array_equal(mm.matrix.toarray(), expected)
+
+
+@pytest.mark.parametrize("length", [2, 5])
+@pytest.mark.parametrize("masked", [False, True])
+def test_calculate_wrong_length_vector(length, masked):
+    kwargs = {"custom_filter": lambda array: array["row"] < 2} if masked else {}
+    mm = _positions_mm(**kwargs)
+    group = mm.group("base")
+    assert len(group.get_indices_data()) == 4
+    with pytest.raises(ValueError, match="elements"):
+        group.calculate(vector=np.arange(float(length)))
+    group.calculate(vector=np.arange(4.0))
+
+
+def test_custom_filter_returns_list():
+    mm_list = _positions_mm(custom_filter=lambda array: [bool(x) for x in array["row"] < 2])
+    mm_array = _positions_mm(custom_filter=lambda array: array["row"] < 2)
+    assert mm_array.n_elements_dropped == 2
+    assert np.array_equal(mm_list.matrix.toarray(), mm_array.matrix.toarray())
+    assert np.array_equal(mm_list.input_data_vector(), mm_array.input_data_vector(), equal_nan=True)
+
+
+def test_flip_rescale_fixed_at_mapping_time():
+    mm = _positions_mm()
+    base, other = mm.group("base"), mm.group("other")
+    expected = mm.matrix.toarray()
+    flip, rescale = mm.input_flip_vector(), mm.input_rescale_vector()
+    # Changing the datapackage arrays after mapping is ignored everywhere
+    base.get_resource_by_suffix("flip")[:] = True
+    other.get_resource_by_suffix("rescale")[:] = 100.0
+    mm.rebuild_matrix()
+    assert np.array_equal(mm.matrix.toarray(), expected)
+    assert np.array_equal(mm.input_flip_vector(), flip)
+    assert np.array_equal(mm.input_rescale_vector(), rescale)
+    assert np.array_equal(base.flip, [False, True, False, False])
+    with pytest.raises(KeyError):
+        base.rescale
+    with pytest.raises(KeyError):
+        other.flip
