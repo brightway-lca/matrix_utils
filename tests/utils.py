@@ -99,6 +99,16 @@ def test_has_relevant_data_use_array():
     assert not has_relevant_data("distributions", create_dp(False, True, False), False, True, False)
 
 
+def test_has_relevant_data_resource_without_group():
+    dp = create_dp(True, False, False)
+    dp.resources.insert(
+        0, {"name": "orphan", "matrix": "foo", "kind": "data", "category": "vector"}
+    )
+    dp.data.insert(0, np.array([0]))
+    assert has_relevant_data("vector", dp, True, False, False)
+    assert not has_relevant_data("missing", dp, True, False, False)
+
+
 def test_tuple_unrolling():
     assert unroll("a", 1) == ("a", 1)
     assert unroll(("a", "b"), 1) == (("a", "b"), 1)

@@ -21,10 +21,15 @@ def filter_groups_for_packages(
 
 
 def has_relevant_data(group_label, package, use_vectors, use_arrays, use_distributions) -> bool:
+    """Check whether resource group ``group_label`` in ``package`` has data we can use.
+
+    ``package`` can be a whole datapackage, or one already filtered to that group (as
+    in ``filter_groups_for_packages``, which avoids scanning every resource of the
+    package for each group). Resources without a group label are ignored."""
     return any(
         res
         for res in package.resources
-        if res["group"] == group_label
+        if res.get("group") == group_label
         and (
             (res["kind"] == "data" and res["category"] == "vector" and use_vectors)
             or (
