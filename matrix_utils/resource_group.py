@@ -197,13 +197,25 @@ class ResourceGroup:
 
     @property
     def flip(self):
-        """The flip array, with all masks applied (if necessary)."""
-        return self.apply_masks(self.get_resource_by_suffix("flip"))
+        """The flip array, with all masks applied (if necessary).
+
+        After ``map_indices``, this is the copy taken at mapping time, which is what
+        ``calculate`` uses. Later changes to the datapackage array are ignored."""
+        flip = self.__dict__.get("_flip")
+        if flip is None:
+            return self.apply_masks(self.get_resource_by_suffix("flip"))
+        return flip
 
     @property
     def rescale(self):
-        """The rescale array, with all masks applied (if necessary)."""
-        return self.apply_masks(self.get_resource_by_suffix("rescale"))
+        """The rescale array, with all masks applied (if necessary).
+
+        After ``map_indices``, this is the copy taken at mapping time, which is what
+        ``calculate`` uses. Later changes to the datapackage array are ignored."""
+        rescale = self.__dict__.get("_rescale")
+        if rescale is None:
+            return self.apply_masks(self.get_resource_by_suffix("rescale"))
+        return rescale
 
     @property
     def rescale_current(self) -> Optional[np.ndarray]:
@@ -272,6 +284,8 @@ class ResourceGroup:
             return None
 
     def map_indices(self, *, diagonal=False):
+        self._mask_index = self._flip = self._rescale = self._multiplier = None
+
         if self.empty:
             self.row_matrix = self.row_masked = np.array([], dtype=np.int64)
             self.col_matrix = self.col_masked = np.array([], dtype=np.int64)
@@ -289,6 +303,7 @@ class ResourceGroup:
             mask_array(self.row_mapped, self.custom_filter_mask),
             mask_array(self.col_mapped, self.custom_filter_mask),
         )
+        self._n_elements = len(indices)
         self._mask_index = self._combined_mask_index()
 
         self.row_masked = self.apply_masks(self.row_mapped)
@@ -300,18 +315,24 @@ class ResourceGroup:
             self.empty = True
             return
 
+        # Flip and rescale are copied here, so that ``calculate``, the ``flip`` and
+        # ``rescale`` properties, and the ``MappedMatrix.input_*`` vectors always agree.
+        if self.has_flip:
+            self._flip = np.array(self.apply_masks(self.get_resource_by_suffix("flip")))
+        if self.has_rescale:
+            self._rescale = np.array(self.apply_masks(self.get_resource_by_suffix("rescale")))
         self._multiplier = self._build_multiplier()
 
         if self.aggregate:
-            # Sorting by the linear index ``row * count + col`` gives the same (row, col)
-            # order as the sparse matrix round trip in ``aggregate_with_sparse``. Storing
-            # the inverse lets ``calculate`` sum duplicates with a single ``bincount``.
-            self.count = max(self.row_masked.max(), self.col_masked.max()) + 1
-            linear = self.row_masked.astype(np.int64) * self.count + self.col_masked
+            # Sort unique (row, col) pairs by the linear index ``row * count + col``, i.e.
+            # by row and then column. Storing the inverse lets ``calculate`` sum
+            # duplicates with a single ``bincount``.
+            count = max(self.row_masked.max(), self.col_masked.max()) + 1
+            linear = self.row_masked.astype(np.int64) * count + self.col_masked
             unique, inverse = np.unique(linear, return_inverse=True)
             self._aggregation_inverse = inverse.reshape(-1)
-            self.row_matrix = (unique // self.count).astype(self.row_masked.dtype)
-            self.col_matrix = (unique % self.count).astype(self.col_masked.dtype)
+            self.row_matrix = (unique // count).astype(self.row_masked.dtype)
+            self.col_matrix = (unique % count).astype(self.col_masked.dtype)
         else:
             self.row_matrix = self.row_masked
             self.col_matrix = self.col_masked
@@ -319,14 +340,15 @@ class ResourceGroup:
     def _combined_mask_index(self) -> Optional[np.ndarray]:
         """Combine ``custom_filter_mask`` and ``unmapped_mask`` into one integer index into the
         original data, or ``None`` if no element is masked."""
-        index = None
-        if self.custom_filter_mask is not None and not self.custom_filter_mask.all():
-            index = np.flatnonzero(self.custom_filter_mask)
+        if self.custom_filter_mask is None and self.unmapped_mask is None:
+            return None
+        # Indexing ``arange`` gives the same selection as indexing the data directly,
+        # for any mask type which Numpy accepts as an index
+        index = np.arange(self._n_elements)
+        if self.custom_filter_mask is not None:
+            index = index[self.custom_filter_mask]
         if self.unmapped_mask is not None:
-            if index is None:
-                index = np.flatnonzero(self.unmapped_mask)
-            else:
-                index = index[self.unmapped_mask]
+            index = index[self.unmapped_mask]
         return index
 
     def _build_multiplier(self) -> Optional[np.ndarray]:
@@ -334,11 +356,10 @@ class ResourceGroup:
         neither exists. Flipping is exact in floating point, so ``data * (sign * rescale)``
         equals flipping and then rescaling."""
         multiplier = None
-        if self.has_flip:
-            multiplier = np.where(self.flip, -1, 1).astype(np.int8)
-        if self.has_rescale:
-            rescale = self.rescale
-            multiplier = rescale if multiplier is None else multiplier * rescale
+        if self._flip is not None:
+            multiplier = np.where(self._flip, -1, 1).astype(np.int8)
+        if self._rescale is not None:
+            multiplier = self._rescale if multiplier is None else multiplier * self._rescale
         return multiplier
 
     def unique_row_indices_for_mapping(self):
@@ -374,19 +395,11 @@ class ResourceGroup:
         self.indexer = Proxy(indexer, offset)
 
     def apply_masks(self, array):
-        """Apply both ``custom_filter_mask`` (if present) and ``unmapped_mask``."""
-        if "_mask_index" in self.__dict__:
-            # Set in ``map_indices``: both masks combined into one integer index
-            index = self._mask_index
-            return array if index is None else array[index]
+        """Apply both ``custom_filter_mask`` (if present) and ``unmapped_mask``.
 
-        if self.custom_filter_mask is not None:
-            array = array[self.custom_filter_mask]
-
-        if self.unmapped_mask is not None:
-            array = array[self.unmapped_mask]
-
-        return array
+        Uses the combined index built in ``map_indices``, so can't be called before it."""
+        index = self._mask_index
+        return array if index is None else array[index]
 
     def calculate(self, vector: np.ndarray = None):
         """Generate row and column indices and a data vector. If ``.data`` is an iterator, draw the
@@ -415,6 +428,12 @@ class ResourceGroup:
             data = self.data_original[:, self.indexer.index % self.ncols]
 
         # `data` is now in the original state before **any** masking.
+        if len(data) != self._n_elements:
+            raise ValueError(
+                f"Data has {len(data)} elements, but the indices of resource group "
+                f"{self.label} have {self._n_elements}"
+            )
+
         # Apply both custom filter mask and mapping mask. Fancy indexing returns a copy;
         # without masks, copy explicitly to avoid modifying the original data.
         if self._mask_index is not None:
