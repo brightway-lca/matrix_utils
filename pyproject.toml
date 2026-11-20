@@ -40,8 +40,8 @@ dependencies = [
     "numpy",
     "scipy>=1.10",
     "pandas",
-    "bw_processing>=1.6",
-    "stats_arrays",
+    "bw_processing>=2.0",
+    "stats_arrays>=5.0.1",
 ]
 
 [project.urls]

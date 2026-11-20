@@ -10,6 +10,12 @@ from stats_arrays import (
 )
 
 import matrix_utils as mu
+from matrix_utils.utils import as_uncertainty_array
+
+
+def from_dicts(*dicts):
+    # stats_arrays and bw_processing order the uncertainty fields differently
+    return as_uncertainty_array(UncertaintyBase.from_dicts(*dicts))
 
 
 def mc_fixture(**kwargs):
@@ -19,7 +25,7 @@ def mc_fixture(**kwargs):
         name="first",
         indices_array=np.array([(0, 0), (0, 1)], dtype=bwp.INDICES_DTYPE),
         data_array=np.array([1, 2]),
-        distributions_array=UncertaintyBase.from_dicts(
+        distributions_array=from_dicts(
             {"loc": 0, "scale": 0.5, "uncertainty_type": NormalUncertainty.id},
             {
                 "loc": 4,
@@ -34,7 +40,7 @@ def mc_fixture(**kwargs):
         name="second",
         indices_array=np.array([(1, 0), (1, 1)], dtype=bwp.INDICES_DTYPE),
         data_array=np.array([11, 12.3]),
-        distributions_array=UncertaintyBase.from_dicts(
+        distributions_array=from_dicts(
             {"loc": 10, "scale": 0.5, "uncertainty_type": NormalUncertainty.id},
             {
                 "loc": 15,
@@ -50,7 +56,7 @@ def mc_fixture(**kwargs):
         indices_array=np.array([(10, 20), (11, 21)], dtype=bwp.INDICES_DTYPE),
         data_array=np.array([12, 34]),
         # PDFs can be completely different from "best guess" values
-        distributions_array=UncertaintyBase.from_dicts(
+        distributions_array=from_dicts(
             {
                 "loc": 100,
                 "minimum": 0,
@@ -177,16 +183,16 @@ def test_distributions_reproducible_without_derived_seeds():
     given = results.sum(axis=0).sum(axis=0).ravel()
     expected = np.array(
         [
-            21.06909828,
-            29.21713645,
-            37.0735732,
-            32.0954309,
-            22.10498503,
-            30.75377088,
-            24.87344966,
-            31.2384641,
-            27.44208816,
-            27.45639759,
+            15.95709954,
+            22.44263988,
+            33.58218198,
+            22.57970688,
+            34.06621687,
+            22.64951799,
+            23.04959789,
+            30.53274205,
+            23.79931747,
+            27.34697841,
         ]
     )
     assert np.allclose(expected, given)
@@ -257,19 +263,20 @@ def test_distributions_reproducible():
         next(mm)
         given.append(mm.matrix.sum())
 
-    # Locks in the seed derivation; must not change across platforms or releases
+    # Locks in the seed derivation; must not change across platforms or releases.
+    # Values are for the stats_arrays>=5 random streams (``numpy.random.default_rng``)
     expected = np.array(
         [
-            36.82558217,
-            30.17308861,
-            30.50747818,
-            22.84149632,
-            25.52543653,
-            30.30897259,
-            24.77950859,
-            27.49645739,
-            33.17481873,
-            28.26067776,
+            27.34931414,
+            32.11880586,
+            32.27370935,
+            24.69009509,
+            28.62176868,
+            28.12345443,
+            29.14049398,
+            23.31505682,
+            17.3229332,
+            28.6088387,
         ]
     )
     assert np.allclose(expected, given)
@@ -284,7 +291,7 @@ def lognormal_fixture(seed=None, name=None):
             name=label,
             indices_array=np.array([(row, row)], dtype=bwp.INDICES_DTYPE),
             data_array=np.array([1.0]),
-            distributions_array=UncertaintyBase.from_dicts(
+            distributions_array=from_dicts(
                 {"loc": 0, "scale": np.log(1.5), "uncertainty_type": LognormalUncertainty.id},
             ),
         )

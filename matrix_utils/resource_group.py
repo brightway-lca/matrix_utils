@@ -6,6 +6,7 @@ from stats_arrays import MCRandomNumberGenerator
 
 from matrix_utils.array_mapper import ArrayMapper
 from matrix_utils.indexers import Indexer, Proxy
+from matrix_utils.utils import validate_seed
 
 
 class FakeRNG:
@@ -79,6 +80,8 @@ class ResourceGroup:
 
         if self.use_distributions and self.vector:
             if self.has_distributions:
+                if self.seed is not None:
+                    validate_seed(self.seed)
                 self.rng = MCRandomNumberGenerator(params=self.data_original, seed=self.seed)
             else:
                 self.rng = FakeRNG(self.data_original)
