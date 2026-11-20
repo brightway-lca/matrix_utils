@@ -11,7 +11,7 @@ __all__ = (
     "SparseMatrixDict",
 )
 
-__version__ = "0.9"
+__version__ = "1.0"
 
 from matrix_utils.array_mapper import ArrayMapper
 from matrix_utils.indexers import CombinatorialIndexer, Proxy, RandomIndexer, SequentialIndexer
