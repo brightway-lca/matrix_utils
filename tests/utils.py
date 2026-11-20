@@ -1,3 +1,5 @@
+import warnings
+
 import bw_processing as bwp
 import numpy as np
 import pytest
@@ -5,6 +7,7 @@ import pytest
 from matrix_utils.errors import AllArraysEmpty
 from matrix_utils.resource_group import ResourceGroup
 from matrix_utils.utils import (
+    filter_groups_for_packages,
     handle_all_arrays_empty,
     has_relevant_data,
     safe_concatenate_indices,
@@ -98,6 +101,16 @@ def test_has_relevant_data_use_array():
     assert not has_relevant_data("distributions", create_dp(False, True, False), False, True, False)
 
 
+def test_has_relevant_data_resource_without_group():
+    dp = create_dp(True, False, False)
+    dp.resources.insert(
+        0, {"name": "orphan", "matrix": "foo", "kind": "data", "category": "vector"}
+    )
+    dp.data.insert(0, np.array([0]))
+    assert has_relevant_data("vector", dp, True, False, False)
+    assert not has_relevant_data("missing", dp, True, False, False)
+
+
 def test_tuple_unrolling():
     assert unroll("a", 1) == ("a", 1)
     assert unroll(("a", "b"), 1) == (("a", "b"), 1)
@@ -155,3 +168,26 @@ Resource group: second-one
 Data array length: 3 (none of this data could be used)
 """
     assert exc_info.value.args[0] == expected
+
+
+def test_filter_groups_for_packages_resource_without_group():
+    # used to raise KeyError: 'group', when every group was checked against the whole package
+    dp = create_dp(True, False, False)
+    dp.resources.insert(
+        0, {"name": "orphan", "matrix": "foo", "kind": "data", "category": "vector"}
+    )
+    dp.data.insert(0, np.array([0]))
+    with pytest.warns(UserWarning, match="without a group label: \\['orphan'\\]"):
+        result = filter_groups_for_packages([dp], "foo", True, False, False)
+    assert [label for label, _ in next(iter(result.values()))] == ["vector"]
+
+
+def test_filter_groups_for_packages_no_warning_for_other_matrices():
+    dp = create_dp(True, False, False)
+    dp.resources.insert(
+        0, {"name": "orphan", "matrix": "bar", "kind": "data", "category": "vector"}
+    )
+    dp.data.insert(0, np.array([0]))
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        filter_groups_for_packages([dp], "foo", True, False, False)
