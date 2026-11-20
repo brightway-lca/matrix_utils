@@ -3,8 +3,41 @@ from typing import Optional
 from warnings import warn
 
 import numpy as np
+from bw_processing import UNCERTAINTY_DTYPE
 
 from matrix_utils.errors import AllArraysEmpty
+
+
+def validate_seed(seed) -> None:
+    """Raise ``ValueError`` (or ``TypeError``) unless ``seed`` is a valid RNG seed.
+
+    Valid seeds are what ``numpy.random.RandomState`` accepts: an integer in
+    ``[0, 2**32)``, or a sequence of such integers. We check this ourselves instead of
+    relying on ``stats_arrays``, whose seed handling has changed between releases."""
+    np.random.RandomState(seed)
+
+
+def as_uncertainty_array(array: np.ndarray) -> np.ndarray:
+    """Return ``array`` with the dtype ``bw_processing.UNCERTAINTY_DTYPE``.
+
+    Accepts structured arrays with the same fields in any order and with any float
+    width, e.g. ``float32`` fields (``bw_processing`` before 2.0) or the field order of
+    ``stats_arrays.UncertaintyBase.from_dicts``. Fields are copied by name, as
+    ``ndarray.astype`` would match structured fields by position.
+
+    Raises ``TypeError`` if the field names differ."""
+    target = np.dtype(UNCERTAINTY_DTYPE)
+    if array.dtype == target:
+        return array
+    if array.dtype.names is None or set(array.dtype.names) != set(target.names):
+        raise TypeError(
+            "Distributions datatype should have the fields of "
+            "`bw_processing.UNCERTAINTY_DTYPE`, but was {}".format(array.dtype)
+        )
+    result = np.empty(array.shape, dtype=target)
+    for field in target.names:
+        result[field] = array[field]
+    return result
 
 
 def derive_seed(seed, *labels: str) -> int:
@@ -23,8 +56,7 @@ def derive_seed(seed, *labels: str) -> int:
 
     Returns an integer in ``[0, 2**32)``, as required by ``numpy.random.RandomState``.
     """
-    # Validate exactly as the RNG we are deriving for would
-    np.random.RandomState(seed)
+    validate_seed(seed)
     seed_entropy = [int(x) for x in np.atleast_1d(seed)]
 
     hasher = hashlib.sha256()

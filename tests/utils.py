@@ -7,11 +7,13 @@ import pytest
 from matrix_utils.errors import AllArraysEmpty
 from matrix_utils.resource_group import ResourceGroup
 from matrix_utils.utils import (
+    as_uncertainty_array,
     filter_groups_for_packages,
     handle_all_arrays_empty,
     has_relevant_data,
     safe_concatenate_indices,
     unroll,
+    validate_seed,
 )
 
 
@@ -191,3 +193,38 @@ def test_filter_groups_for_packages_no_warning_for_other_matrices():
     with warnings.catch_warnings():
         warnings.simplefilter("error")
         filter_groups_for_packages([dp], "foo", True, False, False)
+
+
+def test_as_uncertainty_array_casts_float32_and_reordered_fields():
+    old = np.zeros(
+        2,
+        dtype=[
+            (name, "f4" if kind == np.float64 else kind) for name, kind in bwp.UNCERTAINTY_DTYPE
+        ],
+    )
+    old["loc"] = (1.5, 2.5)
+    old["uncertainty_type"] = (2, 4)
+    reordered = old[[name for name, _ in bwp.UNCERTAINTY_DTYPE][1:] + ["uncertainty_type"]]
+    for given in (old, reordered):
+        result = as_uncertainty_array(given)
+        assert result.dtype == np.dtype(bwp.UNCERTAINTY_DTYPE)
+        assert np.array_equal(result["loc"], [1.5, 2.5])
+        assert np.array_equal(result["uncertainty_type"], [2, 4])
+
+
+def test_as_uncertainty_array_returns_correct_dtype_unchanged():
+    array = np.zeros(2, dtype=bwp.UNCERTAINTY_DTYPE)
+    assert as_uncertainty_array(array) is array
+
+
+def test_as_uncertainty_array_wrong_fields():
+    with pytest.raises(TypeError):
+        as_uncertainty_array(np.zeros(2, dtype=[("loc", float)]))
+    with pytest.raises(TypeError):
+        as_uncertainty_array(np.zeros(2))
+
+
+@pytest.mark.parametrize("seed", [2**32, -1])
+def test_validate_seed_invalid(seed):
+    with pytest.raises(ValueError):
+        validate_seed(seed)

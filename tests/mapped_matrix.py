@@ -455,7 +455,7 @@ def test_matrix_building_multiple_dps_yes_distributions_no_arrays_sum_both_withi
         derive_group_seeds=False,
     )
 
-    sample = [0.87454012, 2.45071431, 1.0, 3.23199394]
+    sample = [1.27395605, 1.93887844, 1.0, 3.35859792]
     expected = np.array(
         [
             [0, 0, 1],
@@ -479,7 +479,7 @@ def test_matrix_building_multiple_dps_yes_distributions_no_arrays_sum_inter_only
         derive_group_seeds=False,
     )
 
-    sample = [0.87454012, 2.45071431, 1.0, 3.23199394]
+    sample = [1.27395605, 1.93887844, 1.0, 3.35859792]
     expected = np.array(
         [
             [0, 0, 1],
@@ -501,7 +501,7 @@ def test_matrix_building_multiple_dps_yes_distributions_no_arrays_sum_intra_only
         derive_group_seeds=False,
     )
 
-    sample = [0.87454012, 2.45071431, 1.0, 3.23199394]
+    sample = [1.27395605, 1.93887844, 1.0, 3.35859792]
     expected = np.array(
         [
             [0, 0, 1],

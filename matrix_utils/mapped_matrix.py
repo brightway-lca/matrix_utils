@@ -9,6 +9,7 @@ from matrix_utils.errors import AllArraysEmpty, EmptyInterface
 from matrix_utils.indexers import CombinatorialIndexer, RandomIndexer, SequentialIndexer
 from matrix_utils.resource_group import ResourceGroup
 from matrix_utils.utils import (
+    as_uncertainty_array,
     derive_seed,
     filter_groups_for_packages,
     handle_all_arrays_empty,
@@ -611,8 +612,9 @@ class MappedMatrix:
         interface, the current data vector is used, and no estimate of uncertainty is
         made. Therefore, this data will never consume new data from an interface.
 
-        Raises a ``TypeError`` if distributions arrays are present but don't follow the
-        dtype of ``bw_processing.UNCERTAINTY_DTYPE``.
+        Distributions arrays are returned with the dtype
+        ``bw_processing.UNCERTAINTY_DTYPE``. Raises a ``TypeError`` if distributions
+        arrays are present but don't have the fields of that dtype.
 
         As both population samples (arrays) and interfaces don't fit into the
         traditional ``stat_arrays`` framework, we mark these with custom
@@ -626,13 +628,8 @@ class MappedMatrix:
 
         for group in self.groups:
             if group.has_distributions and self.use_distributions:
-                if group.data_original.dtype != UNCERTAINTY_DTYPE:
-                    message = (
-                        "Distributions datatype should be "
-                        "`bw_processing.UNCERTAINTY_DTYPE`, but was {}"
-                    )
-                    raise TypeError(message.format(group.data_original.dtype))
-                arrays.append(group.apply_masks(group.data_original))
+                # Older datapackages store float32 fields; return them as float64
+                arrays.append(group.apply_masks(as_uncertainty_array(group.data_original)))
             elif group.is_array() and not group.is_interface():
                 data = group.data_original
                 if number_samples is not None:
